@@ -1,6 +1,6 @@
 ### Bienvenido 👋
 ___
-### En este repositorio podras encontrar scripts de: 
+### En este repositorio podras encontrar temas y scripts de: 
 1. [Manejo de APIs](https://github.com/AVillegas118/AVillegas118/blob/main/Manejo%20de%20APIs.md)
 2. [Scripting en PowerShell](https://github.com/AVillegas118/AVillegas118/blob/main/Scripting%20en%20PowerShell.md)
 3. [Scripting en Bash](https://github.com/AVillegas118/AVillegas118/blob/main/Scripting%20en%20Bash.md)
