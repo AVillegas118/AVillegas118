@@ -136,7 +136,7 @@ ___
  
 ___
 
-####Reduciendo 
+#### Reduciendo 
 ___
 12. Los siguientes comandos tienen como objetivo mostrarte la combinación de comandos mediante | (pipe) de manera que la salida de un comando se procesa por un segundo y así sucesivamente. 
 ~~~
@@ -160,7 +160,7 @@ $ date
 ~~~
 ___
 
-####Netdiscover.sh
+#### Netdiscover.sh
 ___
 13. Crearemos un script para descubrir los equipos conectados a la red interna, el script se llamará netdiscover.sh:
 ~~~
