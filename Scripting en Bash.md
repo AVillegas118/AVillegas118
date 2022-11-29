@@ -74,7 +74,6 @@ ___
 5. Como en todo sistema existen variables de ambiente, para conocer algunas de las variables de ambiente que se manejan en Bash, basta ejecutar:
 ~~~
 $ env 
-
 ~~~
 
 ~~~
