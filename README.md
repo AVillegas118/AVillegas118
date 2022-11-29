@@ -1,16 +1,13 @@
-### Hi there 👋
-
-<!--
-**AVillegas118/AVillegas118** is a ✨ _special_ ✨ repository because its `README.md` (this file) appears on your GitHub profile.
-
-Here are some ideas to get you started:
-
-- 🔭 I’m currently working on ...
-- 🌱 I’m currently learning ...
-- 👯 I’m looking to collaborate on ...
-- 🤔 I’m looking for help with ...
-- 💬 Ask me about ...
-- 📫 How to reach me: ...
-- 😄 Pronouns: ...
-- ⚡ Fun fact: ...
--->
+### Bienvenido 👋
+___
+### En este repositorio podras encontrar scripts de: 
+1. Manejo de APIs
+2. Scripting en PowerShell
+3. Scripting en Bash
+4. Encoding & Decoding
+5. Webscraping
+6. Nmap
+7. FTP
+8. Escáner de Puertos
+9. Envió de Correos
+10. Automatización de Tareas
