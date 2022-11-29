@@ -74,7 +74,7 @@ if __name__ == '__main__':
     if response.status_code == 200:
         print(response.content)
 ~~~
-**Nota**: en los argumentos se ponen los datos al momento de generar el script.
+**Nota**: En los argumentos se ponen los datos al momento de generar el script.
 
 Al ejecutar el script se monstrara algo como lo siguiente
 
