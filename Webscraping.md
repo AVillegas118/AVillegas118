@@ -49,3 +49,31 @@ with open('./citas_matricula.csv', 'w') as csv_file:
     csv_writer = csv.writer(csv_file, dialect='excel')
     csv_writer.writerows(zip(quotes, authors))
 ~~~
+Al ejecutarse se veria algo así
+
+![image](https://user-images.githubusercontent.com/111693854/204680499-48e5842a-647b-44fd-83c5-df65291cf5dc.png)
+
+___
+
+#### PYTHON FAKE JOBS
+___
+4.  En los siguientes pasos iremos construyendo un script de webscraping usando el sitio Python Fake Jobs (https://realpython.github.io/fake-jobs/) :
+
+![image](https://user-images.githubusercontent.com/111693854/204680718-63cd2d11-f894-4fd1-8c19-bd40e345c4e3.png)
+
+___
+5. Igual que en el caso anterior es recomendable inspeccionar la estructura del sitio, analizar los metadatos y cómo podemos obtener la información de ellos: 
+
+![image](https://user-images.githubusercontent.com/111693854/204680842-8f8e5b47-0834-4b7f-9449-2e225958d758.png)
+
+___
+6. Comenzamos con lo más sencillo, conectarse y traer la información de la URL (scrap1.py):
+~~~
+
+~~~
+
+
+
+
+
+
