@@ -123,7 +123,7 @@ Y el resultado es algo como esto:
 ![image](https://user-images.githubusercontent.com/111693854/204681404-49a54d3a-c227-4518-8f06-abbb7e1f825f.png)
 
 ___
-9. - Nos sigue apareciendo mucho código HTML extra, por lo que ahora buscaremos títulos con información más precisa (scrap4.py):
+9. Nos sigue apareciendo mucho código HTML extra, por lo que ahora buscaremos títulos con información más precisa (scrap4.py):
 ~~~
 # Importacion de modulos 
 import requests
@@ -183,5 +183,96 @@ La salida ahora solo muestra el texto que realmente nos interesa:
 ___
 11. Sin embargo, el resultado del script anterior parece arrojar espacios en blanco extra, los podemos limpiar haciendo un ajuste en esta sección (scrap6.py):
 ~~~
-
+import requests
+from bs4 import BeautifulSoup
+# Importacion de modulos 
+URL = "https://realpython.github.io/fake-jobs/"
+page = requests.get(URL)
+# Obtencion de los datos mediante peticion GET 
+soup = BeautifulSoup(page.content, "html.parser")
+results = soup.find(id="ResultsContainer")
+# Analizamos el contenido HTML con BeautifulSoup
+job_elements = results.find_all("div", class_="card-content")
+#En el objeto job_elemento buscamos solo aquellos elementos con
+# titulo e informacion relevante.
+for job_element in job_elements:
+    title_element = job_element.find("h2", class_="title")
+    company_element = job_element.find("h3", class_="company")
+    location_element = job_element.find("p", class_="location")
+    # Se imprime solo el texto.
+    print(title_element.text.strip())
+    print(company_element.text.strip())
+    print(location_element.text.strip())
+    print()
 ~~~
+La salida es más limpia 
+
+![image](https://user-images.githubusercontent.com/111693854/204683136-f01825f9-bb0f-42bd-8406-8a3ccfedbb7a.png)
+
+___
+12. Sin embargo, si el interés en particular es buscar empleos que esta relacionados a desarrollo de Python, entonces la forma de la búsqueda cambia (scrap7.py):
+~~~
+# Importacion de modulos
+import requests
+from bs4 import BeautifulSoup
+# Obtencion de los datos mediante peticion GET
+URL = "https://realpython.github.io/fake-jobs/"
+page = requests.get(URL)
+# Analizamos el contenido HTML con BeautifulSoup
+soup = BeautifulSoup(page.content, "html.parser")
+results = soup.find(id="ResultsContainer")
+# Buscar todos los elementos que el class "card-content"
+job_elements = results.find_all("div", class_="card-content")
+# Buscr todoslos elementos que el h2 contenga en su texto
+# la palabra "python"
+python_jobs = results.find_all(
+    "h2", string=lambda text: "python" in text.lower()
+)
+# Mostramos la cantidad de elementos que cumplen la busqueda.
+print(len(python_jobs))
+~~~
+Y su ejecución solo retorna un valor numérico, la cantidad de trabajos que tienen que ver con “Python”:
+
+![image](https://user-images.githubusercontent.com/111693854/204683357-ddfb6c3d-8d7e-42c3-ab46-9737ecd8c1f1.png)
+
+___
+13. Si queremos información adicional sobre esos empleos, podrías intentar iterar sobre la
+información que previamente estábamos desplegando(scrap8.py): 
+~~~
+# Importacion de modulos
+import requests
+from bs4 import BeautifulSoup
+# Obtencion de los datos mediante peticion GET
+URL = "https://realpython.github.io/fake-jobs/"
+page = requests.get(URL)
+# Analizamos el contenido HTML con BeautifulSoup
+soup = BeautifulSoup(page.content, "html.parser")
+results = soup.find(id="ResultsContainer")
+# Buscar todos los elementos que el class "card-content"
+job_elements = results.find_all("div", class_="card-content")
+# Buscar todos los elementos que el h2 contenga en su texto
+# la palabra "python"
+python_jobs = results.find_all(
+    "h2", string=lambda text: "python" in text.lower()
+)
+# buscamos y mostramos informacion sobre los elementos de 
+# python_jobs
+for job_element in python_jobs:
+    title_element = job_element.find("h2", calss_="title")
+    company_element = job_element.find("h3", class_="company")
+    location_element = job_element.find("p", class_="location")
+    print(title_element.text.strip())
+    print(company_element.text.strip())
+    print(location_element.text.strip())
+    print()
+~~~
+Sin embargo, el resultado no es el esperado: 
+
+![image](https://user-images.githubusercontent.com/111693854/204683497-c5dd2d0c-3cdd-4926-996a-d1617d896c08.png)
+
+La razón por la que sucede esto es que la búsqueda de “scrap8.py” está haciendo una búsqueda sobre un 3er nivel de divisiones, como se muestra a continuación:
+
+![image](https://user-images.githubusercontent.com/111693854/204683642-3b924028-2392-4b78-8bc2-8af478578109.png)
+Para eso tendremos que realizar ajustes para poder encontrar la información que necesitamos (scrap9.py)
+
+ 
