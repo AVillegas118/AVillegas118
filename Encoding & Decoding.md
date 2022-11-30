@@ -166,3 +166,71 @@ $decod =[System.Text.Encoding]::Unicode.GetString([System.Convert]::FromBase64St
 Write-Host "La cadena ya decodificada es:" -ForegroundColor Green
 Write-Host $decod
 ~~~
+
+___
+
+#### Command_posh
+___
+14. La codificación también se puede utilizar para ocultar comandos, como por el ejemplo de
+script siguiente (command_posh.ps1): 
+
+"comando_secret.txt"
+~~~
+RwBlAHQALQBXAG0AaQBPAGIAagBlAGMAdAAgAHcAaQBuADMAMgBfAGIAYQBzAGUAcwBlAHIAdgBpAGMAZQAgAHwAZgBvAHIAZQBhAGMAaAAgAHsAVwByAGkAdABlAC0ASABvAHMAdAAgACQAXwAuAGQAaQBzAHAAbABhAHkAbgBhAG0AZQAgACQAXwAuAHMAdABhAHQAZQB9AA==
+~~~
+
+"command_posh.ps1"
+~~~
+# Comando de powershell a codificar en Base64
+$comando = 'Get-WmiObject win32_logicaldisk | foreach {Write-Host $_.deviceID $_.size $_.freespace}'
+# codificando $comando
+$encode = [Convert]::ToBase64String([Text.Encoding]::Unicode.GetBytes($comando))
+Write-Host $encode
+# Ejecutando el comando codificado
+Write-Host "Vamos a ejecutar el comando asi: powershell -E "$encode -ForegroundColor Cyan
+Start-Sleep 1
+powershell -E $encode
+Start-Sleep 2
+# $comando_secret guarda un comando codificado en Base64 
+$comando_secret='RwBlAHQALQBXAG0AaQBPAGIAagBlAGMAdAAgAHcAaQBuADMAMgBfAGIAYQBzAGUAcwBlAHIAdgBpAGMAZQAgAHwAZgBvAHIAZQBhAGMAaAAgAHsAVwByAGkAdABlAC0ASABvAHMAdAAgACQAXwAuAGQAaQBzAHAAbABhAHkAbgBhAG0AZQAgACQAXwAuAHMAdABhAHQAZQB9AA=='
+# Decodificamos el comando
+$decod = [System.Text.Encoding]::Unicode.GetString([System.Convert]::FromBase64String($comando_secret))
+# Mostramos el resultado
+Write-Host "El comando codificado es:" -ForegroundColor Cyan
+Write-Host $comando_secret
+Write-Output ""
+Write-Host "El comando ya sin codificar:"-ForegroundColor Cyan
+Write-Host $decod
+~~~
+
+___
+
+#### Codipo
+___
+15.  También es posible trabajar con archivos, el siguiente script (codipo.ps1), muestra un ejemplo de codificación/decodificación Base64 sobre un archivo “secret.txt”
+
+"secret.txt"
+~~~
+import requests # if __name__ == '__main__': 	
+url = "https://www.google.com.mx" 	
+response = requests.get(url) 	 	
+if response.status_code == 200: 		
+print(response.content)
+~~~
+
+"codipo.ps1"
+~~~
+Clear-Host
+Write-Host "Bienvenido a un ejemplo de codificacion / decodificacion base64 uasndo powershell"
+Write-Host " Codificando un archivo de texto"
+$intputfile = "Ubicacion de el archivo secret.txt"
+$fc = get-content $intputfile
+$GB = [System.Text.Encoding]::UTF8.GetBytes($fc)
+$etext = [System.Convert]::ToBase64String($GB)
+Write-Host "El contenido del archivo CODIFICADO es:" $etext -ForegroundColor Green
+Write-Host "DECODIFICANDO el texto previo:"
+[System.Text.Encoding]::ASCII.GetString([System.Convert]::FromBase64String($etext)) | Out-File -Encoding "ASCII" (Ubicacion de el archivo secret.txt)
+$outfile12 = get-content C:\Users\NutCr\Desktop\Lab_PC\secret.txt
+Write-Host "El texto decodificado es el siguiente:" -ForegroundColor Green
+Write-Host "DECODIFICADO:" $outfile12
+~~~
