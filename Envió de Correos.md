@@ -58,7 +58,7 @@ conn.quit()
 
 ___
 
-####Script de muestra (Python)
+#### Script de muestra (Python)
 ___
 
 ~~~
@@ -88,7 +88,7 @@ html = f"""
     <b> Practica de envio de correos </b><br><br>
     Ejercicio de practica para envio de correos.<br><br>
     <b>Alumno:</b>(Ingresar nombre)<br><br>
-    <b>Matricula:</b> 2013610<br>
+    <b>Matricula:</b> (Matricula) <br>
 </body>
 </html>
 """
