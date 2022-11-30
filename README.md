@@ -6,7 +6,7 @@ ___
 3. [Scripting en Bash](https://github.com/AVillegas118/AVillegas118/blob/main/Scripting%20en%20Bash.md)
 4. [Encoding & Decoding](https://github.com/AVillegas118/AVillegas118/blob/main/Encoding%20&%20Decoding.md)
 5. [Webscraping](https://github.com/AVillegas118/AVillegas118/blob/main/Webscraping.md)
-6. Nmap
+6. [Nmap](https://github.com/AVillegas118/AVillegas118/blob/main/Nmap.md)
 7. FTP
 8. Escáner de Puertos
 9. Envió de Correos
