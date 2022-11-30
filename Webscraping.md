@@ -275,5 +275,175 @@ La razón por la que sucede esto es que la búsqueda de “scrap8.py” está ha
 ![image](https://user-images.githubusercontent.com/111693854/204683642-3b924028-2392-4b78-8bc2-8af478578109.png)
 
 Para eso tendremos que realizar ajustes para poder encontrar la información que necesitamos (scrap9.py)
+~~~
+# Importacion de modulos
+import requests
+from bs4 import BeautifulSoup
+# Obtencion de los datos mediante peticion GET
+URL = "https://realpython.github.io/fake-jobs/"
+page = requests.get(URL)
+# Analizamos el contenido HTML con BeautifulSoup
+soup = BeautifulSoup(page.content, "html.parser")
+results = soup.find(id="ResultsContainer")
+# Buscar todos los elementos que el class "card-content"
+job_elements = results.find_all("div", class_="card-content")
+# Buscar todos los elementos que el h2 contenga en su texto
+# la palabra "python"
+python_jobs = results.find_all(
+    "h2", string=lambda text: "python" in text.lower()
+)
+# Buscar cada elemento que tenga referencia de python_jobs
+# Y almacenarlo en python_jobs_elements
+python_jobs_elements = [
+    h2_element.parent.parent.parent for h2_element in python_jobs
+]
+# Mostrar informacion de python_jobs_elements
+for job_element in python_jobs_elements:
+    title_element = job_element.find("h2", class_="title")
+    company_element = job_element.find("h3", class_="company")
+    location_element = job_element.find("p", class_="location")
+    print(title_element.text.strip())
+    print(company_element.text.strip())
+    print(location_element.text.strip())
+    print()
+~~~
+Ahora sí, la información debe aparecer:
 
- 
+![image](https://user-images.githubusercontent.com/111693854/204694073-9603d802-14ab-4ed5-a201-bc804a8e58ba.png)
+
+___
+14. Vamos a agregar información de contacto o como ser candidato al mismo, realizamos los siguientes ajustes al código (scrap10.py):
+~~~
+# Importacion de modulos
+import requests
+from bs4 import BeautifulSoup
+# Obtencion de los datos mediante peticion GET
+URL = "https://realpython.github.io/fake-jobs/"
+page = requests.get(URL)
+# Analizamos el contenido HTML con BeautifulSoup
+soup = BeautifulSoup(page.content, "html.parser")
+results = soup.find(id="ResultsContainer")
+# Buscar todos los elementos que el class "card-content"
+job_elements = results.find_all("div", class_="card-content")
+# Buscar todos los elementos que el h2 contenga en su texto
+# la palabra "python"
+python_jobs = results.find_all(
+    "h2", string=lambda text: "python" in text.lower()
+)
+# Buscar cada elemento que tengan referencia de python_jobs
+# Y almacenarlo en python_jobs_elements
+python_jobs_elements = [
+    h2_element.parent.parent.parent for h2_element in python_jobs
+]
+# Mostrar informacion de python_jobs_elements
+for job_element in python_jobs_elements:
+    title_element = job_element.find("h2", class_="title")
+    company_element = job_element.find("h3", class_="company")
+    location_element = job_element.find("p", class_="location")
+    # Buscamos elementos con la etiqueta "a"
+    links = job_element.find_all("a")
+    print(company_element.text.strip())
+    print(location_element.text.strip())
+    print(title_element.text.strip())
+    # Mostramos todos los elelmentos en los links
+    for link in links:
+        link_url = link["href"]
+        print(link.text.strip())
+    print()
+~~~
+Sin embargo, los links de referencia no se muestran: 
+
+![image](https://user-images.githubusercontent.com/111693854/204694546-de1ddd36-9ead-4e56-aca6-1b872ef5599d.png)
+
+___
+15. Para que la salida incluya el link de href, se realiza el siguiente ajuste (scrap11.py): 
+~~~
+# Importacion de modulos
+import requests
+from bs4 import BeautifulSoup
+# Obtencion de los datos mediante peticion GET
+URL = "https://realpython.github.io/fake-jobs/"
+page = requests.get(URL)
+# Analizamos el contenido HTML con BeautifulSoup
+soup = BeautifulSoup(page.content, "html.parser")
+results = soup.find(id="ResultsContainer")
+# Buscar todos los elementos que el class "card-content"
+job_elements = results.find_all("div", class_="card-content")
+# Buscar todos los elementos que el h2 contenga en su texto
+# la palabra "python"
+python_jobs = results.find_all(
+    "h2", string=lambda text: "python" in text.lower()
+)
+# Buscar cada elemento que tengan referencia de python_jobs
+# Y almacenarlo en python_jobs_elements
+python_jobs_elements = [
+    h2_element.parent.parent.parent for h2_element in python_jobs
+]
+# Mostrar informacion de python_jobs_elements
+for job_element in python_jobs_elements:
+    title_element = job_element.find("h2", class_="title")
+    company_element = job_element.find("h3", class_="company")
+    location_element = job_element.find("p", class_="location")
+    # Buscamos elementos con la etiqueta "a"
+    links = job_element.find_all("a")
+    print(company_element.text.strip())
+    print(location_element.text.strip())
+    print(title_element.text.strip())
+    # Mostramos todos los elelmentos en los links
+    for link in links:
+        link_url = link["href"]
+        # Formateamos el print para que ncluya el link.
+        print(f"Apply Here: {link_url}\n")
+    print()
+~~~
+Y entonces la ejecución muestra algo como lo siguiente:
+
+![image](https://user-images.githubusercontent.com/111693854/204694831-8c679d0d-add9-433f-84e3-c82b9f28faaf.png)
+
+___
+16. Finalmente, aunque nos muestra los dos elementos de href, en realidad solo nos interesa el elemento de “Apply Here”, el cual podemos filtrar haciendo los siguientes ajustes (scrap12.py): 
+~~~
+# Importacion de modulos
+import requests
+from bs4 import BeautifulSoup
+# Obtencion de los datos mediante peticion GET
+URL = "https://realpython.github.io/fake-jobs/"
+page = requests.get(URL)
+# Analizamos el contenido HTML con BeautifulSoup
+soup = BeautifulSoup(page.content, "html.parser")
+results = soup.find(id="ResultsContainer")
+# Buscar todos los elementos que el class "card-content"
+job_elements = results.find_all("div", class_="card-content")
+# Buscar todos los elementos que el h2 contenga en su texto
+# la palabra "python"
+python_jobs = results.find_all(
+    "h2", string=lambda text: "python" in text.lower()
+)
+# Buscar cada elemento que tengan referencia de python_jobs
+# Y almacenarlo en python_jobs_elements
+python_jobs_elements = [
+    h2_element.parent.parent.parent for h2_element in python_jobs
+]
+# Buscar cada elemento que tengan referencia de python_jobs
+# Y almacenarlo en python_jobs_elements
+python_jobs_elements = [
+    h2_element.parent.parent.parent for h2_element in python_jobs
+]
+# Mostrar informacion de python_jobs_elements
+for job_element in python_jobs_elements:
+    title_element = job_element.find("h2", class_="title")
+    company_element = job_element.find("h3", class_="company")
+    location_element = job_element.find("p", class_="location")
+    # De la lista de leementos de la etiqueta "a" buscamos 
+    # el primer elemento que incluya href.
+    links_url = job_element.find_all("a")[1]["href"]
+    print(company_element.text.strip())
+    print(location_element.text.strip())
+    print(title_element.text.strip())
+    # Imprimimos la salida con link_url
+    print(f"Apply Here: {links_url}\n")
+    print()
+~~~
+Al ejecutar el script la salida es algo parecido a esto: 
+
+![image](https://user-images.githubusercontent.com/111693854/204694980-1080d37d-8260-4fe0-b6c2-2b735858c972.png)
