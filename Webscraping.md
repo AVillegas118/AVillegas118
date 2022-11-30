@@ -273,6 +273,7 @@ Sin embargo, el resultado no es el esperado:
 La razón por la que sucede esto es que la búsqueda de “scrap8.py” está haciendo una búsqueda sobre un 3er nivel de divisiones, como se muestra a continuación:
 
 ![image](https://user-images.githubusercontent.com/111693854/204683642-3b924028-2392-4b78-8bc2-8af478578109.png)
+
 Para eso tendremos que realizar ajustes para poder encontrar la información que necesitamos (scrap9.py)
 
  
