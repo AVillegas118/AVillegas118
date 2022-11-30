@@ -84,7 +84,85 @@ ___
 
 #### Cypher
 ___
+5. El siguiente script de Python utiliza el módulo “cryptography” y lo iremos armando por bloques: 
 
+![image](https://user-images.githubusercontent.com/111693854/204674393-18a2118b-b8ed-43ce-8c31-1e8852251d42.png)
 
+6. Definimos una función genwrite para guardar la llave con que cifraremos:
+ 
+![image](https://user-images.githubusercontent.com/111693854/204674453-c8b209cb-e559-4c15-ab7d-acf254c342ca.png)
 
+7. Llamaremos a la función genwrite para que genere el archivo con la llave:
 
+![image](https://user-images.githubusercontent.com/111693854/204674579-0226aaa6-c99b-4fd4-9145-9a521f48cc71.png)
+
+8. Definimos la función call_key para leer desde el archivo “pass.key” la llave para cifrar:
+
+![image](https://user-images.githubusercontent.com/111693854/204674678-e0049e63-23c5-4461-81f7-9b3df54fdf99.png)
+
+9. Cifraremos un mensaje almacenado en una variable:
+
+![image](https://user-images.githubusercontent.com/111693854/204674719-6bf3e69f-5e84-4ffb-8f1f-576897c210f2.png)
+
+10. Y agregamos el proceso para descifrar el mismo mensaje:
+
+![image](https://user-images.githubusercontent.com/111693854/204674792-1c8677f9-1e04-49bb-901f-62e5007ace13.png)
+
+11. Guardamos el archivo como “cypher.py” y dependiendo de donde lo hayamos guardado lo
+podemos ejecutar con “python cypher.py” : 
+
+![image](https://user-images.githubusercontent.com/111693854/204674886-b42a6900-859d-4a64-9e26-2463fc308ff2.png)
+
+___
+
+#### POWERSHELL
+___
+
+Code_posh
+___
+12. Ahora veremos varios ejemplos de codificación/decodificación usando PowerShell, el primer ejemplo es para codificar en Base64 (coder_posh.ps1):
+~~~
+# Limpiando pantalla
+# 
+Clear-Host
+# Mensaje de bienvenida
+Write-Host "Ejemplo de codificador Base64 en Powershell" -ForegroundColor Yellow
+Write-Host "Escribe una frase a codificar: "-ForegroundColor Yellow
+# Solicitando la entrada de una cabina de texto.
+$frase = Read-Host
+# Codificando en Base64 y guardando resultado en una cadena.
+$encod = [Convert]::ToBase64String([Text.Encoding]::Unicode.GetBytes(($frase)))
+# Imprimiendo la salida
+Write-Host "La frase escrita en base64 es: " -ForegroundColor Green
+Write-Output $encod 
+~~~
+El resultado al ejecutarlo deberia de verse asi 
+
+![image](https://user-images.githubusercontent.com/111693854/204675088-ca8ce449-c586-4783-95d6-97f0bdc44126.png)
+
+___
+
+#### Decoder_posh
+___
+13. el siguiente script (decoder_posh.ps1) sirve para decodificar una cadena en Base64. Para facilitar la implementación de este script usaremos “texto_decoder_posh.txt” el cual contiene la cadena de la variable $texto: 
+
+"texto_decoder_posh.txt"
+~~~
+TABhAGIAbwByAGEAdABvAHIAaQBvACAAZABlACAAUAByAG8AZwByAGEAbQBhAGMAaQDzAG4AIABwAGEAcgBhACAAQwBpAGIAZQByAFMAZQBnAHUAcgBpAGQAYQBkACAAUwBlAHMAaQDzAG4AIAAxADAA
+~~~
+
+"decoder_posh.ps1"
+~~~
+# Limpiando Pantalla 
+Clear-Host
+# Mensaje de bienvenida 
+write-host " Ejemplo de Decodificador Base64 en Powershell"-ForegroundColor Yellow
+# Mensaje codificando Base64
+$texto = 'TABhAGIAbwByAGEAdABvAHIAaQBvACAAZABlACAAUAByAG8AZwByAGEAbQBhAGMAaQDzAG4AIABwAGEAcgBhACAAQwBpAGIAZQByAFMAZQBnAHUAcgBpAGQAYQBkACAAUwBlAHMAaQDzAG4AIAAxADAA'
+Write-Host "La cadena a decodificar es:"
+Write-Host $texto
+# Decodificamos el mensaje
+$decod =[System.Text.Encoding]::Unicode.GetString([System.Convert]::FromBase64String($texto))
+Write-Host "La cadena ya decodificada es:" -ForegroundColor Green
+Write-Host $decod
+~~~
