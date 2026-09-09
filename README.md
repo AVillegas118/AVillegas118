@@ -1,6 +1,30 @@
 ### Bienvenido 👋
 
-Estoy aprendiendo sobre ciberseguridad, scripting y automatización. En este repositorio organizo mis apuntes y ejercicios para poder consultarlos y mejorar mis conocimientos con el tiempo.
+Estoy aprendiendo sobre ciberseguridad, scripting y automatización. En este
+repositorio organizo mis apuntes y ejercicios para poder consultarlos y mejorar
+mis conocimientos con el tiempo.
+
+---
+
+### Proyectos prácticos de ciberseguridad
+
+1. [Monitor de integridad de archivos](https://github.com/AVillegas118/file-integrity-monitor)
+   - Detecta archivos creados, modificados o eliminados comparando hashes SHA-256.
+   - **Conceptos:** integridad, hashing, línea de comandos y reportes JSON.
+
+2. [Analizador de correos sospechosos](https://github.com/AVillegas118/phishing-email-analyzer)
+   - Revisa un correo `.eml` sin abrir enlaces ni conectarse a Internet.
+   - **Conceptos:** cabeceras de correo, URLs, indicadores y falsos positivos.
+
+3. [Analizador de logs SSH](https://github.com/AVillegas118/security-log-analyzer)
+   - Identifica fuerza bruta, password spraying y accesos después de varios fallos.
+   - **Conceptos:** logs, ventanas temporales, eventos y reglas de detección.
+
+Cada proyecto incluye datos ficticios, pruebas automáticas y explicaciones para
+reproducirlo paso a paso.
+
+[Empieza aquí: cómo estudiar los apuntes](https://github.com/AVillegas118/AVillegas118/blob/main/docs/LEEME-PRIMERO.md)
+ · [Ruta de los tres proyectos](https://github.com/AVillegas118/AVillegas118/blob/main/docs/RUTA-DE-APRENDIZAJE.md)
 
 ---
 
@@ -25,4 +49,5 @@ Estoy aprendiendo sobre ciberseguridad, scripting y automatización. En este rep
 
 ---
 
-Este repositorio tiene un propósito educativo. Las prácticas relacionadas con seguridad se realizan únicamente en sistemas propios o con autorización.
+Este repositorio tiene un propósito educativo. Las prácticas relacionadas con
+seguridad se realizan únicamente en sistemas propios o con autorización.

@@ -1,174 +1,129 @@
-## Escáner de Puertos
-### Se verán varios ejercicios enfocados en el desarrollo de pequeñas piezas de software desarrolladas en Python para el scaneo de puertos 
-___
+# Escáner de puertos local con Python
 
-#### ESCANER DE PUERTOS 
-___
+Este ejercicio enseña cómo funciona una conexión TCP. Por seguridad, el programa
+acepta únicamente direcciones de loopback (`127.0.0.0/8` o `::1`), es decir, el
+propio equipo.
 
-#### SCAN_PORTV1
-___
-1. En el siguiente script contiene las partes en las que:
+Un puerto abierto indica que algún programa aceptó una conexión. No demuestra que
+exista una vulnerabilidad.
 
-- Se importan las librerías requeridas
-- Se pedirán como argumentos del script la dirección ip y el rango de puertos a escanear
-- El rango de puertos proporcionado como segundo argumento se transforma en una lista de la que se obtienen dos valores
-- El argumento originalmente guardado como host se procesa con la función
-gethostbyname para obtener una dirección ip; también se crea una lista para almacenar los
-puertos que se encontraron abiertos
-- Se inicia un bucle for para con sockets ir probando los puertos obtenidos del rango de puertos, si el resultado es 0 se agregan a la lista de opened_ports
-- Se imprimen los resultados
+## Preparar una prueba controlada
 
-~~~
-#!/usr/bin/python
-# -*- coding: utf-8 -*-
-#Parte 1 
-#Importamos librerias necesarias
-import sys
-from socket import *
-#Parte 2
-#Modo de ejecucion del script
-# port_scan.py <host> <start_port>-<end_post>
-#Primer argumento se guarda en variable host
-#Segundo argumento de guarda en portstrs
-host = sys.argv[1]
-portstrs = sys.argv[2].split('-')
-#Parte 3
-#portstrs contiene dos valores que asignamos
-#en start_port e valor de inicio
-#en end_port el valor fin 
-start_port = int(portstrs[0])
-end_port = int(portstrs[1])
-#Parte 4 
-#Para usar en el socket sasignados lo de la
-#variable host a target_ip
-#Definimos una lista de puertos opened_ports
-target_ip = gethostbyname(host)
-opened_ports = []
-#Parte 5 
-#Iniciamos bucle for para probar los puertos 
-for port in range (start_port, end_port):
-    sock = socket(AF_INET, SOCK_STREAM)
-    sock.settimeout(10)
-    result = sock.connect_ex((target_ip, port))
-    if result == 0:
-        opened_ports.append(port)
-#Parte 6 
-#Se imprime salida 
-print("Opened ports:")
-#
-for i in opened_ports:
-    print(i)
-~~~
-Al ejecutar el script nos dara un resultado parecido a lo siguiente: 
+Abre un servidor web temporal que sólo escuche en el equipo local:
 
-![image](https://user-images.githubusercontent.com/111693854/204716066-9456206e-ca31-47c2-99f4-94571279ba37.png)
+```bash
+python3 -m http.server 8000 --bind 127.0.0.1
+```
 
-___
+Déjalo activo mientras pruebas el escáner y detenlo con `Ctrl+C` al terminar.
 
-#### SCAN_PORTV2 
-___
-2. A continuación, se construirá el script scan_portv2.py en base a las siguientes partes
+## Código completo
 
-- Se importan las librerías requeridas 
-- Se define la función scan sobre la que usando sockets se estarán probando los diferentes puertos
-- Se establece una lista de puertos, que para fines prácticos se recomienda sea un número limitado
--  Se crea un bucle for para por cada dirección de un segmento pre-establecido en la variable addr evaluar cada uno de los puertos en la variable ports
-** Nota**: Para que el script funcione el segmento de red se deberá ajustar a la red que se tiene configurada en el host donde se prueba
+Guarda este archivo como `local_port_scanner.py`:
 
-~~~
-#Parte 1 
-#Importamos librerias requeridas
+```python
+import argparse
+import ipaddress
 import socket
-#Parte 2 
-#Se define la funcion scan con la cual
-#se utilizan sockets para probar los diferentes 
-#puertos
-def scan(addr, port):
-    #Creando un nuevo socket 
-    socket_obj = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
-    #Estableciendo el timeout para el nuevo objeto tipo socket
-    socket.setdefaulttimeout(1)
 
-    #Conexion exitosa devuelve 0. Devuelve error en caso contrario
-    result = socket_obj.connect_ex((addr,port)) #Direccion y puerto en tupla.
+def parse_port(value: str) -> int:
+    try:
+        port = int(value)
+    except ValueError as error:
+        raise argparse.ArgumentTypeError("el puerto debe ser un número entero") from error
+    if not 1 <= port <= 65535:
+        raise argparse.ArgumentTypeError("el puerto debe estar entre 1 y 65535")
+    return port
 
-    #Se cierra el objeto
-    socket_obj.close()
 
-    return result
-#Part 3
-# lista de puertos a escanear
-ports=[21, 22, 25, 80]
-#Parte 4 
-# bucle por todas las ip del rango 192.168.0.
-for i in range (1,255):
-    addr="192.168.0.".format(i)
-    for port in ports:
-        result=scan(addr, port)
-        if result==0:
-            print(addr, port, "OK")
-        else:
-            print(addr, port, "Failed")
-~~~
-Al ejectuarse se mostrara lo siguiente:
+def is_open(host: str, port: int, timeout: float = 0.3) -> bool:
+    try:
+        with socket.create_connection((host, port), timeout=timeout):
+            return True
+    except (TimeoutError, ConnectionRefusedError, OSError):
+        return False
 
-![image](https://user-images.githubusercontent.com/111693854/204716618-6a957593-ba35-4530-89f1-e4fa70b99d56.png)
 
-___
+def main() -> None:
+    parser = argparse.ArgumentParser(description="Comprueba puertos del equipo local")
+    parser.add_argument("--host", default="127.0.0.1")
+    parser.add_argument("--start", type=parse_port, required=True)
+    parser.add_argument("--end", type=parse_port, required=True)
+    args = parser.parse_args()
 
-#### SCAN_PORTV3
-___
-3. El siguiente script tiene la misma función que la v1, solo que se emplea threading para tener múltiples hilos y sus partes son en las cuales
+    try:
+        address = ipaddress.ip_address(args.host)
+    except ValueError:
+        parser.error("--host debe ser una dirección IP válida")
+    if not address.is_loopback:
+        parser.error("esta práctica sólo permite direcciones loopback")
+    if args.start > args.end:
+        parser.error("--start no puede ser mayor que --end")
+    if args.end - args.start + 1 > 1000:
+        parser.error("el rango máximo para esta práctica es de 1000 puertos")
 
-- Se importan las librerías necesarias
-- Se crea la función tcp_test con la cual se prueban los puertos abiertos usando sockets
-- Se genera el bloque principal main de ejecución del script y se guardan los argumentos proporcionados en variables
-- El argumento almacenado en portstrs se convierte en lista y sus valores los asignamos a nuevas variables
-- Se obtiene la dirección ip del argumento almacenado en la variable host con la función gethostbyname
-- Se genera bucle for para probar puertos usando la función tcp_test y generando un hilo por puerto
+    for port in range(args.start, args.end + 1):
+        if is_open(str(address), port):
+            print(f"ABIERTO  {address}:{port}")
 
-~~~
-# Parte1
-#Importamos librerias necesarias
-import sys
-import threading
-from socket import *
-#Parte 2 
-#Creamos una funcion tcp_test la cual
-#permite probar mediante socket los puertos
-#abiertos, se le agrega lock.release()
-def tcp_test(port):
-    sock = socket(AF_INET, SOCK_STREAM)
-    sock.settimeout(10)
-    result = sock .connect_ex((target_ip, port))
-    if result == 0:
-        print ("Opened Port:", port)
-#Parte 3
-#Establecemos el main del script
-#Guardamos en variables host y portstrs
-if __name__=='__main__':
-    # portscan.py <host> <start_port>-<end_port>
-    host = sys.argv[1]
-    portstrs = sys.argv[2].split('-')
-#Parte 4 
-#portstrs se convierte en lista al momento
-#de hacer split y de ahi obtener dos valores
-start_port = int(portstrs[0])
-end_port =  int(portstrs[1])
-#Parte 5
-#Usando la funcion gethostbyname se obtiene
-#la direccion ip.
-target_ip = gethostbyname(host)
-#Parte 6 #Se inicia bucle para probar puertos
-#usando la funcion tcp_test y generando
-#un hilo por cada puerto a probar
-hilos = []
-for port in range(start_port, end_port):
-    hilo = threading.Thread(target=tcp_test, args=(port,))
-    hilos.append(hilo)
-    hilo.start()
-~~~
-Al ejecutarse como resultado se mostrara lo siguiente : 
 
-![image](https://user-images.githubusercontent.com/111693854/204717272-e28110e7-2759-41da-856b-df1cb40e145a.png)
+if __name__ == "__main__":
+    main()
+```
+
+Ejecútalo alrededor del puerto de prueba:
+
+```bash
+python local_port_scanner.py --start 7998 --end 8002
+```
+
+Resultado esperado:
+
+```text
+ABIERTO  127.0.0.1:8000
+```
+
+## Explicación por partes
+
+- `argparse` recibe y valida los argumentos.
+- `ipaddress.ip_address` convierte el texto en una dirección válida.
+- `is_loopback` impide utilizar el ejemplo contra equipos externos.
+- `socket.create_connection` intenta completar una conexión TCP.
+- `timeout` evita esperar demasiado por cada intento.
+- `with` cierra el socket automáticamente.
+- El límite de rango evita crear miles de conexiones por error.
+
+Un puerto que no aparece puede estar cerrado, filtrado o simplemente no haber
+respondido antes del timeout. Este programa no intenta identificar servicios ni
+enviar cargas adicionales.
+
+## Prueba manual de los controles
+
+Estas ejecuciones deben producir un error comprensible:
+
+```bash
+python local_port_scanner.py --host 192.0.2.10 --start 80 --end 80
+python local_port_scanner.py --start 9000 --end 8000
+python local_port_scanner.py --start 0 --end 80
+```
+
+## Limitaciones
+
+- Sólo comprueba TCP, no UDP.
+- Sólo funciona contra el equipo local de forma intencional.
+- Un timeout no permite distinguir todos los posibles estados.
+- No identifica el programa ni la versión detrás del puerto.
+
+## Siguientes pasos seguros
+
+1. Añadir pruebas unitarias para `parse_port`.
+2. Mostrar cuánto tardó cada conexión.
+3. Comparar el resultado con `ss -lnt` en Linux.
+4. Registrar los puertos esperados y avisar si aparece uno nuevo.
+
+## Uso responsable
+
+Un escaneo genera tráfico y puede activar controles de seguridad. Para estudiar
+otros equipos utiliza exclusivamente un laboratorio propio o una autorización
+explícita que indique alcance y horario.

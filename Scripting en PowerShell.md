@@ -1,178 +1,237 @@
-## Scripting en Powershell
-### Se reforza el conocimiento sobre PowerShell a travez de la ejecucion de varios cmd-let propios de la herramienta.
-___
-#### PARTE 1 – ESCANEO DE EQUIPOS ACTIVOS
-**Nota**: Se esta utilizando Powershell ISE o CLI de Powershell
-1. Se determina al Gateway de la red interna: 
-~~~
-$subred = (Get-NetRoute -DestinationPrefix 0.0.0.0/0.NextHop
-Write-Host "Tu gateway es: "$subred
-~~~
-Al ejecutarlo se monstrara algo como lo siguiente
+# Fundamentos de scripting en PowerShell
 
-![image](https://user-images.githubusercontent.com/111693854/204615043-fdab6fa2-edc4-44b9-a25e-0fba4e22ffa2.png)
+Apunte de aprendizaje centrado en administración y seguridad defensiva. Practicarás
+con variables, procesos, archivos y las comprobaciones de red del apunte original.
+Los ejemplos de red empiezan en `127.0.0.1`, el propio equipo; para usar una VM,
+introduce sólo una dirección de tu laboratorio.
 
-___
-2. Obteniendo el rango de la subred interna
-~~~
-$rango = $subred.Substring(0,$subred.IndexOf('.') + 1 + $subred.Substring(subred.IndexOf('.') + 3 )
-echo $rango
-~~~
-Al ejecutarlo se monstrara algo como lo siguiente
+Los cmdlets de red, eventos y tareas de estas notas están pensados para Windows.
+PowerShell también existe en Linux, pero allí no están disponibles todos esos módulos.
 
-![image](https://user-images.githubusercontent.com/111693854/204615135-49ac21ee-2f61-4cd2-ae93-056311a2631a.png)
+## 1. Cmdlets y ayuda
 
-___
-3. Probando “Test-Connection” para validar respuesta de un servidor, probaremos con el
-Gateway de nuestra red (ej. 192.68.1.254): 
-~~~
-$respuesta = Test-Connection 192.168.1.254 -Quiet -Count 1
-Write-Host $respuesta
-~~~
-Al ejecutar si hay respuesta el resultado de la variables $respuesta es "True"
+PowerShell utiliza comandos con formato `Verbo-Sustantivo`:
 
-___
-4. Generar una prueba de bucle foreach para procesar valores de un array
-**Ejemplo**:
-~~~
-$rango_ip = @(1..254)
-foreach ( $ip in rango_ip )
-{
-Write-Host "Direccion ip :"$ip
+```powershell
+Get-Help Get-Process -Examples
+Get-Process | Select-Object -First 5
+```
+
+`Get-Help` explica un cmdlet y `Get-Process` obtiene procesos. La tubería (`|`)
+envía objetos completos, no sólo texto, al siguiente comando.
+
+## 2. Variables y salida
+
+```powershell
+$ProjectName = "Laboratorio defensivo"
+Write-Output "Proyecto: $ProjectName"
+```
+
+Los nombres descriptivos facilitan la lectura. No guardes contraseñas, tokens ni
+claves API directamente en variables dentro de un script publicado.
+
+## 3. Filtrar y seleccionar objetos
+
+```powershell
+Get-Process |
+    Where-Object CPU -GT 10 |
+    Sort-Object CPU -Descending |
+    Select-Object -First 10 Name, Id, CPU
+```
+
+Este ejemplo muestra procesos que han consumido más de diez segundos de CPU. Un
+consumo alto no implica malware; sólo es un dato que puede investigarse.
+
+## 4. Calcular la huella de un archivo
+
+```powershell
+$Path = ".\configuracion.txt"
+
+if (-not (Test-Path -LiteralPath $Path -PathType Leaf)) {
+    Write-Error "No existe el archivo: $Path"
+    exit 1
 }
-~~~
 
-___
-5. Una vez que ya obtuvimos el rango de nuestra subred, también sabemos cómo probar una
-conexión hacia algún equipo de nuestra subred y sabemos hacer un bucle foreach, el paso a seguir es construir nuestro script de escaneo de equipos activos en nuestra subred.
+Get-FileHash -LiteralPath $Path -Algorithm SHA256
+```
 
-~~~
-# Determinando gateway 
-$subred = (Get-NetRoute -DestinationPrefix 0.0.0.0/0).NextHop
-Write-Host "== Determinando tu gateway ..."
-Write-Host "Tu gateway: $subred " 
-#
-# Determinando rango de subred 
-#
-$rango = $subred.Substring(0,$subred.IndexOf('.') + 1 + $subred.Substring($subred.IndexOf('.') + 1).IndexOf('.') + 3)
-Write-Host "== Determinando tu rango de subred ..."
-echo $rango 
-#
-# Determinando si rango termina en "."
-#
-$punto = $rango.Endswith('.')
-if ( $punto -like "False" )
-{
-	$rango = $rango + '.' 
+Un hash es una huella del contenido. Si cambia el archivo, normalmente cambia su
+SHA-256. El hash no cifra ni protege el archivo por sí solo.
+
+## 5. Script defensivo: inventario de procesos
+
+Guarda este contenido como `Get-ProcessSnapshot.ps1`:
+
+```powershell
+[CmdletBinding()]
+param(
+    [string]$OutputPath = ".\process-snapshot.csv"
+)
+
+$Processes = Get-Process -ErrorAction Stop |
+    Select-Object Name, Id, Path, StartTime
+
+$Processes | Export-Csv -LiteralPath $OutputPath -NoTypeInformation -Encoding UTF8
+Write-Output "Inventario guardado en: $OutputPath"
+```
+
+El resultado sirve para comparar el estado del equipo en distintos momentos. Puede
+contener nombres de usuario o rutas internas; no lo subas automáticamente a un
+repositorio público.
+
+## 6. Revisar eventos de inicio de sesión fallido
+
+En Windows, el evento de seguridad `4625` representa un inicio de sesión fallido:
+
+```powershell
+Get-WinEvent -FilterHashtable @{
+    LogName = "Security"
+    Id      = 4625
+} -MaxEvents 10 |
+    Select-Object TimeCreated, Id, Message
+```
+
+La lectura del registro `Security` puede requerir una terminal con permisos de
+administrador. Los fallos también pueden tener causas legítimas, como una contraseña
+antigua guardada en un servicio.
+
+## 7. Manejo básico de errores
+
+```powershell
+try {
+    Get-Content -LiteralPath ".\archivo.txt" -ErrorAction Stop
 }
-#
-# Creamos un array con 254 numeros ( 1 a 254 )
-#
-$rango_ip = @(1..254)
-#
-# Generamos un bucle ferach para validar hosts activos en nuestra subred
-#
-Write-Output ""
-Write-Host "-- Subred actual:"
-Write-Host "Escaneando: " -NoNewline ; Write-Host $rango -NoNewline; Write-Host "0/24" -ForegroundColor Red
-Write-Output ""
-foreach ( $r in $rango_ip ) 
-{
-	$actual = $rango + $r 
-	$responde = Test-Connection $actual -Quie -Count 1
-	if ($responde -eq "True" ) 
-	{
-		Write-Output ""
-		Write-Host " Host responde: " -NoNewline; Write-Host $actual -ForegroundColor Green
-	}
-
+catch {
+    Write-Error "No se pudo leer el archivo: $($_.Exception.Message)"
 }
-~~~
-Guardamos el script con el nombre scan_alive1.ps1
-**Para ejecutar el script se coloca en Powershell ".\scan_alive1.ps1"**
+```
 
-Al ejecutar el script scan_alive1.ps1 se mostrara algo como lo siguiente 
+`-ErrorAction Stop` permite que `catch` reciba el error. Mostrar un mensaje claro es
+mejor que ocultarlo con un bloque `catch {}` vacío.
 
-![image](https://user-images.githubusercontent.com/111693854/204619580-399734eb-4059-4e4f-a1cc-4786acdce345.png)
+## 8. Consultar IP y puerta de enlace
 
-___
+En Windows:
 
-#### PARTE 2 – Escaneo puertos de un equipo en la subred
-___
-1. Determinamos la dirección de ip de nuestro equipo ejecutan “ipconfig” en nuestra terminal de powershell:
-~~~
-ipconfig
-~~~
-Se mostrara algo como lo siguiente 
+```powershell
+Get-NetIPConfiguration |
+    Select-Object InterfaceAlias, IPv4Address, IPv4DefaultGateway
 
-![image](https://user-images.githubusercontent.com/111693854/204620392-398d3e45-8f40-45c2-a070-d71a64006a34.png)
+Get-NetIPAddress -AddressFamily IPv4 |
+    Select-Object InterfaceAlias, IPAddress, PrefixLength
+```
 
-**En mi caso la direccion es "192.168.1.67"**
-___
-8. Ahora verificaremos que varios puertos estén activos o abiertos en dicho equipo de esta manera
-~~~
-try{ $resultado = $TCPObject.ConnectAsync("192.168.1.67",139).Wait(100)}catch{}
-echo $resultado
-~~~
+La IP identifica una interfaz del equipo. La puerta de enlace permite llegar a
+otras redes. `PrefixLength` describe qué parte de la dirección corresponde a la
+red. Una VPN o varias tarjetas pueden mostrar varias entradas; no supongas que
+la primera corresponde a tu laboratorio.
 
-~~~
-try{ $rsultado = $TCPObject.ConnectAsync("192.168.1.67",445).Wait(100)}catch{}
-echo $resultado
-~~~
+El código antiguo intentaba construir la subred recortando el texto de la puerta
+de enlace. Eso falla con prefijos distintos de `/24` y con varias rutas. Para esta
+práctica usa una lista explícita de las IP que quieres comprobar.
+Referencia: [Get-NetIPConfiguration](https://learn.microsoft.com/en-us/powershell/module/nettcpip/get-netipconfiguration?view=windowsserver2025-ps).
 
-___
-9. Reutilizaremos el mismo código utilizado en “scan_alivev1.ps1” en lo siguiente:
-~~~
-#
-#Escaneo de puertos (mas comunes) en equipos de la misma subred
-#Determinando gateway 
-#
-$subred = (Get-NetRoute -DestinationPrefix 0.0.0.0/0).NextHop
-Write-Host "== Determinando tu gateway ..."
-Write-Host "Tu gateway: $subred " 
-#
-# Determinando rango de subred 
-#
-$rango = $subred.Substring(0,$subred.IndexOf('.') + 1 + $subred.Substring($subred.IndexOf('.') + 1).IndexOf('.') + 3)
-Write-Host "== Determinando tu rango de subred ..."
-echo $rango 
-#
-# Determinando si rango termina en "."
-#
-$punto = $rango.Endswith('.')
-if ( $punto -like "False" )
-{
-	$rango = $rango + '.' 
-}
-#
-#Definimos un array con puertos a escanear 
-#Establecemos una variable para Waittime
-#
-$portstoscan = @(20,21,22,23,25,50,53,80,110,119,135,136,137,138,139,143,161,162,389,443,445,636,1025,1443,3389,5985,5986,8080,10000)
-$waittime = 100
-#
-# Solicitamos dirreccion ip a escanear: 
-#
-Write-Host "Direccion Ip a scanear: " -NoNewline
-$direccion = Read-Host
-#
-# Generamos bucle foreach para evaluar cada puerto en $portstoscan 
-#
-foreach ($p in  $portstoscan )
-{
-    $TCPObject = New-Object System.Net.Sockets.TcpClient
-    try{ $resultado = $TCPObject.ConnectAsync($direccion,$p).Wait($waittime)}catch{}
-    if ( $resultado -eq "True" )
-    {
-        Write-Host "Puerto Abierto:" -NoNewline;Write-Host $p -ForegroundColor Green
+## 9. Comprobar equipos con `Test-Connection` y `foreach`
+
+Guarda este script como `scan_alive1.ps1`:
+
+```powershell
+[CmdletBinding()]
+param(
+    [string[]]$TargetAddresses = @("127.0.0.1")
+)
+
+foreach ($Address in $TargetAddresses) {
+    $Responds = Test-Connection -ComputerName $Address -Count 1 -Quiet
+    [pscustomobject]@{
+        Address = $Address
+        RespondsToPing = $Responds
     }
 }
-~~~
+```
 
-Igual que en el caso de scan_alive, guardaremos el script con el nombre de
-“scan_portv1.ps1”, y lo mandaremos ejecutar así: 
-**"./scan_portv1.ps1"**
+`foreach` repite el bloque para cada elemento del array. `-Quiet` devuelve un
+booleano (`True` o `False`) en vez del informe completo. Un equipo que no responde
+a ping puede seguir encendido y ofrecer servicios: algunos bloquean ICMP.
 
-Se mostrara algo como lo siguiente
+```powershell
+.\scan_alive1.ps1
+# Ejemplo opcional: reemplaza estas IP por dos VM de tu laboratorio.
+.\scan_alive1.ps1 -TargetAddresses "192.168.56.10", "192.168.56.11"
+```
 
-![image](https://user-images.githubusercontent.com/111693854/204624637-3ab3339c-db2f-472f-95e7-a555df80ec1d.png)
+Referencia: [Test-Connection](https://learn.microsoft.com/en-us/powershell/module/microsoft.powershell.management/test-connection).
+
+## 10. Comprobar puertos TCP de un equipo
+
+Guarda como `scan_portv1.ps1`:
+
+```powershell
+[CmdletBinding()]
+param(
+    [string]$TargetAddress = "127.0.0.1",
+    [ValidateRange(1, 65535)]
+    [int[]]$Ports = @(22, 80, 443)
+)
+
+foreach ($Port in $Ports) {
+    $Connected = Test-NetConnection -ComputerName $TargetAddress `
+        -Port $Port -InformationLevel Quiet
+
+    [pscustomobject]@{
+        Address = $TargetAddress
+        Port = $Port
+        TcpConnectionSucceeded = $Connected
+    }
+}
+```
+
+```powershell
+.\scan_portv1.ps1
+.\scan_portv1.ps1 -TargetAddress "127.0.0.1" -Ports 8000
+```
+
+`True` significa que se pudo establecer una conexión TCP; `False` sólo indica que
+la conexión no se completó. No distingue por sí solo un puerto cerrado de un
+firewall o un problema de red. Es normal que las comprobaciones fallidas tarden.
+
+Este ejemplo usa un cmdlet de Windows para que se entienda el bucle. En el original,
+`TcpClient` debía crearse antes de cada intento, reiniciar el resultado y cerrarse
+en `finally`; de otro modo quedaban conexiones sin liberar o resultados anteriores.
+Referencia: [Test-NetConnection](https://learn.microsoft.com/en-us/powershell/module/nettcpip/test-netconnection).
+
+## Ejecutar un script local
+
+```powershell
+.\Get-ProcessSnapshot.ps1
+```
+
+Si la política impide la ejecución durante una práctica autorizada, consulta antes
+su valor:
+
+```powershell
+Get-ExecutionPolicy -List
+```
+
+No desactives permanentemente los controles del sistema sólo para ejecutar un
+ejemplo descargado.
+
+## Errores comunes
+
+- Confundir objetos de PowerShell con texto plano.
+- Ocultar todos los errores mediante `catch {}`.
+- Usar `Write-Host` cuando la salida debe continuar por la tubería.
+- Publicar archivos CSV con información del equipo.
+- Copiar scripts y ejecutarlos con privilegios sin revisarlos.
+
+## Siguientes pasos
+
+1. Comparar dos inventarios de procesos con `Compare-Object`.
+2. Exportar eventos seleccionados a JSON.
+3. Añadir parámetros de fecha al análisis de eventos.
+4. Escribir pruebas con Pester.
+
+## Uso responsable
+
+Consulta registros y comprueba conexiones sólo en tu equipo o laboratorio autorizado.
+Revisa los inventarios antes de compartirlos para quitar datos personales.

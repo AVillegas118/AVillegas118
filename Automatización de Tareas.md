@@ -1,175 +1,194 @@
-## Automatización de Tareas
-### La automatización de tareas es una tarea inevitable y en muchas de las ocasiones necesaria, y es que a fin de hacer más eficiente el trabajo automatizar es una actividad vital
-___
+# Automatización segura de tareas
 
-#### Automatizando tareas en Linux 
-___
-**Nota**: Se utilizara una mauina Debian11
-1. Usando cualquier editor de texto de tu preferencia guardar el siguiente código con el nombre “proc_mon.sh” 
-~~~
-#!/bin/bah
-#
-# Script para listar procesos ejecutandose 
-# en el servidor.
-#
-## Variables
-#
-TIME='date +%d-%m-Y %H:%M:5'
-FECHA='date +%d-%m-%Y'
-#
-## Creando directorio de Log
-#
-if [ ! -d "$HOME/log" ]
-then
-        mkdir $HOME/log
-fi
-#
-## Listando procesos
-#
-echo "#" >> '$HOME'/log/procesos_'${FECHA}'.log
-echo "###############################################################" >> $HOME/log/procesos_${FECHA}.log
-echo "#" >> '$HOME'/log/procesos_${FECHA}.log
-echo "Hora:"$TIME >> $HOME/log/procesos_${FECHA}.log
-ps -ef >> $HOME/log/procesos_${FECHA}.log
-echo "TOTAL DE PROCESOS: "'ps -ef |wc -1' >> $HOME/log/procesos_${FECHA}.log
-echo "Hora:"$TIME >> $HOME/log/procesos_${FECHA}.log
-#
-~~~
-___
-2. Le asignamos los permisos 
-~~~
-$chmod +x proc_mon.sh
-~~~
-Al ejecutarse  manual mente deberia de verse asi 
+Automatizar significa programar una tarea repetitiva para que se ejecute de manera
+consistente. Este apunte crea inventarios locales de procesos; no envía información
+fuera del equipo.
 
-![image](https://user-images.githubusercontent.com/111693854/204856761-cf310818-cf74-4cdb-8dba-0bfe57ae0aff.png)
+## Riesgos que debemos considerar
 
-___
-3. Ahora vamos a automatizar dicho proceso mediante la programación de la ejecución de este script cada cierto tiempo , en este caso seran cada 5 minutos
-~~~
-$EDITOR=nano; export EDITOR
-~~~
+- Un script automático repite también sus errores.
+- Las tareas heredarán permisos del usuario que las ejecuta.
+- Los archivos de salida pueden contener información sensible.
+- Una frecuencia excesiva puede llenar el disco o consumir recursos.
+- Las rutas relativas pueden apuntar a lugares inesperados.
 
-~~~
-$crontab -e
-~~~
+Primero prueba el script manualmente y usa el mínimo privilegio necesario.
 
-![image](https://user-images.githubusercontent.com/111693854/204857169-14548439-37db-4984-9e07-92b15284e9a2.png)
+## Linux: guardar un resumen de procesos
 
-___
-4. Confirmamos los cambios
-~~~
-$crontab -l
-~~~
+Guarda `process_snapshot.sh`:
 
-___
-5. Despues de 5 minutos ejecutaremos el siguiente comando 
-~~~
-$tail -f procesos-<fecha>.log
-~~~
+```bash
+#!/usr/bin/env bash
+set -euo pipefail
 
-![image](https://user-images.githubusercontent.com/111693854/204857556-a0357f0c-1e29-4d31-b814-d7cb78203972.png)
+output_dir="${XDG_STATE_HOME:-$HOME/.local/state}/process-snapshots"
+timestamp=$(date -u +'%Y-%m-%dT%H-%M-%SZ')
 
-___
+umask 077
+mkdir -p -- "$output_dir"
+ps -eo pid,user,comm --sort=pid > "$output_dir/processes-$timestamp.txt"
 
-#### Automatizando tareas en Windows
-___
+printf 'Inventario guardado en %s\n' "$output_dir/processes-$timestamp.txt"
+```
 
-#### Task con PowerShell
-___
-1. En una ventana de powershell probaremos los cmd-let básicos para programación de tareas con powershell
-~~~
-PS> $tarea = New-ScheduledTaskAction -Execute ‘calc.exe’
-~~~
+Detalles importantes:
 
-___
-2. Ahora dentro de la variable “trigger” estableceremos cuando se ejecutará dicha tarea, para este ejemplo será solo una vez (Once)
-~~~
-PS> $trigger = New-ScheduledTasktrigger -Once -At 08:45am 
-~~~
-**Nota**: La hora es a su preferencia 
+- `set -euo pipefail` hace visibles varios errores.
+- La fecha UTC evita nombres ambiguos.
+- `umask 077` limita los nuevos archivos al usuario actual.
+- `ps -eo` selecciona sólo las columnas necesarias.
+- No se necesita `sudo`.
 
-___
-3. Finalmente vamos a programa la tarea de la siguiente manera
-~~~
-Register-ScheduledTask -Action $tarea -Trigger $trigger -TaskPath “MisTareas” -TaskName “ArrancaCalc” -Description “Tarea que abre la Calculadora” 
-~~~
-**Esperamos a la hora puesta y veremos los siguiente**
+Prueba manual:
 
-![image](https://user-images.githubusercontent.com/111693854/204858598-2b6bd215-92f5-4407-b820-373e560056d9.png)
+```bash
+chmod u+x process_snapshot.sh
+./process_snapshot.sh
+```
 
-___
+## Programarlo con cron
 
-#### SEND_SYSINFO
-___
-Este es un script que manda correos ,se deben de cambiar las direcciones de correos ,y colocar la contraseña de aplicacion del correo gmail
+Consulta tus tareas actuales antes de editar:
 
-~~~
-#
-# Script de PowerShell que obtiene información basica de un equipo
-# lo guarda en un archivo csv
-# Posteriormente envia ese archivo a través de correo electronico
-# usando una cuenta de gmail.
-#
-############ Get Information 
-#
-$computer=hostname
-$query = Get-WmiObject -Class win32_computersystem -ComputerName $computer
-$name = $query.Name
-$make = $query.Manufacturer
-$model = $query.Model
-$ram = $query.TotalPhysicalMemory/1Gb
-$os = (Get-WmiObject -Class win32_operatingsystem -ComputerName $computer).Caption
-$cpu = (Get-WmiObject -Class Win32_processor -ComputerName $computer).Name
-$users = $query.Username
-#
-# Llenando arraya para generación de csv
-#
-$Object = New-Object PSObject
-$Object | Add-Member -MemberType NoteProperty -Name "ComputerName" -Value $name
-$Object | Add-Member -MemberType NoteProperty -Name "Make" -Value $make
-$Object | Add-Member -MemberType NoteProperty -Name "Model" -Value $model
-$Object | Add-Member -MemberType NoteProperty -Name "RAM" -Value $ram
-$Object | Add-Member -MemberType NoteProperty -Name "OS" -Value $os
-$Object | Add-Member -MemberType NoteProperty -Name "CPU" -Value $cpu
-$Object | Add-Member -MemberType NoteProperty -Name "LoggedOnUsers" -Value $users
-$array = $Object
-$array | Export-Csv -Path c:\scripts\test.csv -NoTypeInformation # Aqui se genera archivo csv
-#
-#### Para Envio de correo
-#
-$Username = "@gmail.com"; # Aqui va tu cuenta de gmail
-$Password = "clave super secreta";      # Aqui va tu password de aplicación
-$path = "C:\scripts\test.csv";       # Aqui va la ruta de el archivo csv generado previamente
-function Send-ToEmail([string]$email, [string]$attachmentpath){
-    $message = new-object Net.Mail.MailMessage;
-    $message.From = "@gmail.com"; # Aqui va tu cuenta de gmail.
-    $message.To.Add($email);
-    $message.Subject = "<Aqui va el asunto>."; #Asunto del correo
-    $message.Body = "<Aqui va el cuerpo del mensaje"; #Cuerpo o Mensaje del correo.
-    $attachment = New-Object Net.Mail.Attachment($attachmentpath);
-    $message.Attachments.Add($attachment);
-    $smtp = new-object Net.Mail.SmtpClient("smtp.gmail.com", "587");
-    $smtp.EnableSSL = $true;
-    $smtp.Credentials = New-Object System.Net.NetworkCredential($Username, $Password);
-    $smtp.send($message);
-    write-host "Mail Sent" ; 
-    $attachment.Dispose();
- }
- Send-ToEmail  -email "destinario@dominio.com" -attachmentpath $path; # En email pones el destinatario
-~~~
+```bash
+crontab -l
+crontab -e
+```
 
-___
+Ejemplo para ejecutar una vez cada hora:
 
-#### Automatizacion de scripts
-___
-En este caso se utilizara el archivo .py llamado SEND_SYSINFO
+```cron
+0 * * * * /ruta/absoluta/process_snapshot.sh >> /ruta/absoluta/cron.log 2>&1
+```
 
+Usa rutas absolutas porque el entorno de cron es más limitado que una terminal.
+Después comprueba `cron.log` y el directorio de resultados.
 
-![image](https://user-images.githubusercontent.com/111693854/204860037-a1388b60-399f-4d01-ad7f-c93da71ef479.png)
+Los cinco campos son minuto, hora, día del mes, mes y día de la semana. Para
+reproducir la frecuencia de cinco minutos del apunte original, cambia `0 * * * *`
+por `*/5 * * * *`. Para empezar, una vez por hora genera menos archivos. `tail -f`
+permite seguir el registro mientras se ejecuta: `tail -f /ruta/absoluta/cron.log`.
+Referencia: [formato de crontab en Debian](https://manpages.debian.org/trixie/cron/crontab.5.en.html).
 
-Comprobamos que se ejecuto correctamente revisando nuestra bandeja de entrada 
+Para dejar de ejecutar la tarea, elimina únicamente esa línea mediante `crontab -e`.
+No uses `crontab -r`, porque borraría todas las tareas del usuario.
 
-![image](https://user-images.githubusercontent.com/111693854/204860184-850f720f-d87c-46b3-8c65-290360ece03c.png)
+## Windows: tarea programada con PowerShell
 
+Primero prepara una carpeta de práctica dentro de tu perfil:
 
+```powershell
+$LabDirectory = Join-Path $env:LOCALAPPDATA "CyberLab"
+New-Item -ItemType Directory -Path $LabDirectory -Force | Out-Null
+Write-Output $LabDirectory
+```
+
+Guarda el siguiente archivo como `Get-ProcessSnapshot.ps1` dentro de esa carpeta:
+
+```powershell
+$OutputDirectory = Join-Path $env:LOCALAPPDATA "ProcessSnapshots"
+$Timestamp = (Get-Date).ToUniversalTime().ToString("yyyy-MM-ddTHH-mm-ssZ")
+
+New-Item -ItemType Directory -Path $OutputDirectory -Force | Out-Null
+Get-Process |
+    Select-Object Name, Id, CPU |
+    Export-Csv -Path (Join-Path $OutputDirectory "processes-$Timestamp.csv") `
+        -NoTypeInformation -Encoding UTF8
+```
+
+Prueba el archivo manualmente. Después, desde la misma ventana de PowerShell:
+
+```powershell
+$ScriptPath = Join-Path $LabDirectory "Get-ProcessSnapshot.ps1"
+& $ScriptPath
+
+$Action = New-ScheduledTaskAction `
+    -Execute "$env:SystemRoot\System32\WindowsPowerShell\v1.0\powershell.exe" `
+    -Argument ('-NoProfile -File "{0}"' -f $ScriptPath)
+
+$Trigger = New-ScheduledTaskTrigger -Daily -At 10:00
+$CurrentUser = [System.Security.Principal.WindowsIdentity]::GetCurrent().Name
+$Principal = New-ScheduledTaskPrincipal -UserId $CurrentUser `
+    -LogonType Interactive -RunLevel Limited
+
+Register-ScheduledTask `
+    -TaskName "ProcessSnapshotLab" `
+    -Action $Action `
+    -Trigger $Trigger `
+    -Principal $Principal `
+    -Description "Inventario local de procesos para aprendizaje"
+```
+
+La **acción** dice qué ejecutar, el **desencadenador** dice cuándo y el **usuario**
+define con qué permisos. Este ejemplo se ejecuta con tu sesión iniciada y sin
+elevación. Si una política del equipo impide crear tareas, consulta esa restricción.
+No se añade una contraseña al script.
+Referencia: [usuario de una tarea programada](https://learn.microsoft.com/en-us/powershell/module/scheduledtasks/new-scheduledtaskprincipal?view=windowsserver2025-ps).
+
+Para revisar y retirar sólo esta tarea:
+
+```powershell
+Get-ScheduledTask -TaskName "ProcessSnapshotLab"
+Unregister-ScheduledTask -TaskName "ProcessSnapshotLab" -Confirm
+```
+
+## Práctica corta del apunte original: abrir la calculadora
+
+Con `$Principal` definido en el ejemplo anterior, programa una sola ejecución
+dentro de dos minutos. Así puedes ver el resultado mientras tienes sesión iniciada:
+
+```powershell
+$CalculatorAction = New-ScheduledTaskAction -Execute "$env:SystemRoot\System32\calc.exe"
+$OnceTrigger = New-ScheduledTaskTrigger -Once -At (Get-Date).AddMinutes(2)
+
+Register-ScheduledTask -TaskName "CalculatorLab" -Action $CalculatorAction `
+    -Trigger $OnceTrigger -Principal $Principal `
+    -Description "Práctica de una tarea de una sola ejecución"
+```
+
+Después de observarla puedes retirar sólo esa tarea:
+
+```powershell
+Unregister-ScheduledTask -TaskName "CalculatorLab" -Confirm
+```
+
+## Inventario del sistema: la parte de `SEND_SYSINFO`
+
+El apunte original también recogía información del sistema. Este ejemplo conserva
+esa práctica y guarda su resultado localmente. `Get-CimInstance` consulta las
+clases del sistema y `[pscustomobject]` reúne los datos en una fila:
+
+```powershell
+$Computer = Get-CimInstance -ClassName Win32_ComputerSystem
+$OperatingSystem = Get-CimInstance -ClassName Win32_OperatingSystem
+$Processors = Get-CimInstance -ClassName Win32_Processor
+$InventoryPath = Join-Path $env:LOCALAPPDATA "system-inventory.csv"
+
+[pscustomobject]@{
+    ComputerName = $Computer.Name
+    Manufacturer = $Computer.Manufacturer
+    Model = $Computer.Model
+    RAM_GB = [math]::Round($Computer.TotalPhysicalMemory / 1GB, 2)
+    OS = $OperatingSystem.Caption
+    CPU = ($Processors.Name -join "; ")
+    LoggedOnUser = $Computer.UserName
+} | Export-Csv -LiteralPath $InventoryPath -NoTypeInformation -Encoding UTF8
+
+Write-Output "Inventario guardado en: $InventoryPath"
+```
+
+Guárdalo como otro archivo `.ps1` si quieres programarlo con el mismo procedimiento.
+Referencia: [Get-CimInstance](https://learn.microsoft.com/en-us/powershell/module/cimcmdlets/get-ciminstance?view=powershell-7.5).
+
+Para continuar con la parte de correo, revisa [Envío de correos](Envi%C3%B3%20de%20Correos.md).
+Prueba primero el envío con contenido ficticio y verifica el destinatario. Un
+inventario real contiene nombres de equipos y usuarios; no lo envíes ni publiques
+automáticamente como salida de la práctica.
+
+## Siguientes pasos
+
+1. Eliminar automáticamente inventarios de más de siete días.
+2. Registrar errores con fecha y código de salida.
+3. Comparar dos inventarios para localizar procesos nuevos.
+4. Añadir una prueba que escriba sólo dentro de un directorio temporal.

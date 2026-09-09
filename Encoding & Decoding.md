@@ -1,236 +1,140 @@
-## Encoding & Decoding
-### Se veran practicas en las que se emplearan herramientas:
-- Python
-- Powershell
-___
+# Codificación, cifrado y hashing
 
-#### PYTHON
-___
+Estos conceptos suelen confundirse, pero resuelven problemas diferentes.
 
-#### Encode_Text
-___
-1. Se desarrollara el primer script basico para codificar el texto en Base64,el script lleva por nombre encode_text.py:
-~~~
+| Concepto | Objetivo | Se puede revertir | Necesita secreto |
+| --- | --- | --- | --- |
+| Codificación | Representar datos en otro formato | Sí | No |
+| Cifrado | Proteger confidencialidad | Sí, con la clave | Sí |
+| Hash | Crear una huella | No de forma directa | No |
+
+**Base64 es codificación, no cifrado.** Cualquier persona puede decodificarlo, por lo
+que nunca debe usarse para proteger contraseñas o secretos.
+
+## 1. Base64 en Python
+
+```python
 import base64
-#
-# Obtenemos una frase desde el input principal.
-#
-print ("Bienvenido a codificadorBase64 en Python")
-frase = input("Proporciona una frase para codificar: ")
-#
-# Obtenemos los bytes de la frase
-#
-frase_bytes = frase.encode('ascii')
-#
-# Se calculan los bytes en base64
-#
-base64_bytes = base64.b64encode(frase_bytes)
-#
-# Se genera mensaje en base64
-#
-base64_message = base64_bytes.decode('ascii')
-print("La frase codificada en Base 64 en: ")
-print(base64_message)
-~~~
-___
 
-#### Encode_Imgur
-___
-2. Se visita el sitio de imagenes : https://imgur.com/
 
-3. Usando el link de la imagen obtenido implementar el script que descargara la imagen y la codificara en Base64:
-~~~
-import requests
+text = input("Texto de práctica: ")
+encoded = base64.b64encode(text.encode("utf-8")).decode("ascii")
+decoded = base64.b64decode(encoded, validate=True).decode("utf-8")
+
+print(f"Base64: {encoded}")
+print(f"Original: {decoded}")
+```
+
+El recorrido es:
+
+```text
+texto → bytes UTF-8 → bytes Base64 → texto ASCII
+```
+
+Para regresar se realiza el orden inverso. `validate=True` rechaza caracteres que
+no pertenecen al formato Base64 esperado.
+
+## 2. Codificar y restaurar un archivo
+
+Este ejemplo es apropiado sólo para archivos pequeños:
+
+```python
 import base64
-from requests import Response
-#
-## Para descargar la imagen del sitio
-#
-if __name__ == '__main__':
-    url = 'https://i.pinimg.com/originals/04/56/32/045632827cc644fdb8a7962a5f2fcb81.jpg' # Por alguna razon no se descargaban las imagenes de imgur 
+from pathlib import Path
 
-    Response: Response = requests.get(url, stream=True)
-    with open('Megaman.jpg','wb') as file_down:
-        for chunk in Response.iter_content():
-            file_down.write(chunk)
-    Response.close()
 
-# Para codificar la imagen
+source = Path("ejemplo.bin")
+encoded_path = Path("ejemplo.bin.b64")
+restored_path = Path("ejemplo-restaurado.bin")
 
-with open('stones.jpg','rb') as binary_file:
-    binary_file_data = binary_file.read()
-    base64_encoded_data = base64.b64encode(binary_file_data)
-    base64_message = base64_encoded_data.decode('utf8')
+data = source.read_bytes()
+encoded_path.write_bytes(base64.b64encode(data))
+restored_path.write_bytes(base64.b64decode(encoded_path.read_bytes(), validate=True))
+```
 
-    print (base64_message)
-~~~
-**Nota**: En este ejemplo se utilizo una imagen de Megaman de ahi el nombre de el archivo creado 
-___
+Después puedes comparar el original y el restaurado con SHA-256:
 
-#### Decoding_uanl
-___
-4. El siguiente script (decoding_uanl.py) es para decodificar una imagen que se encuentra en Base64 pasarla a formato png. Para facilitar la implementación del script se proporciona la codificación en el archivo “uanlencode.txt” que se encuentra en los recursos de la plataforma, el script inicia así: 
+```bash
+sha256sum ejemplo.bin ejemplo-restaurado.bin
+```
 
-[decoding_uanl.zip](https://github.com/AVillegas118/AVillegas118/files/10117764/decoding_uanl.zip)
-**Nota**: El script es grande por la imagen codificada 
+Que ambos hashes coincidan indica que el contenido es igual. No demuestra quién
+creó el archivo ni lo protege contra modificaciones futuras.
 
-![image](https://user-images.githubusercontent.com/111693854/204660040-b0a7b677-7b6a-4727-aac9-6b235d10650d.png)
+## 3. Base64 en PowerShell
 
-y termina asi 
- 
-![image](https://user-images.githubusercontent.com/111693854/204660275-3f3c3785-4730-48c7-9cda-bdae7b8618df.png)
+```powershell
+$Text = Read-Host "Texto de práctica"
+$Encoded = [Convert]::ToBase64String([Text.Encoding]::UTF8.GetBytes($Text))
+$Decoded = [Text.Encoding]::UTF8.GetString([Convert]::FromBase64String($Encoded))
 
-___
+Write-Output "Base64: $Encoded"
+Write-Output "Original: $Decoded"
+```
 
-#### Cypher
-___
-5. El siguiente script de Python utiliza el módulo “cryptography” y lo iremos armando por bloques: 
+Es importante utilizar la misma codificación (`UTF8` en este caso) en ambos sentidos.
 
-![image](https://user-images.githubusercontent.com/111693854/204674393-18a2118b-b8ed-43ce-8c31-1e8852251d42.png)
+## 4. SHA-256 en Python
 
-6. Definimos una función genwrite para guardar la llave con que cifraremos:
- 
-![image](https://user-images.githubusercontent.com/111693854/204674453-c8b209cb-e559-4c15-ab7d-acf254c342ca.png)
+```python
+import hashlib
+from pathlib import Path
 
-7. Llamaremos a la función genwrite para que genere el archivo con la llave:
 
-![image](https://user-images.githubusercontent.com/111693854/204674579-0226aaa6-c99b-4fd4-9145-9a521f48cc71.png)
+path = Path("ejemplo.bin")
+digest = hashlib.sha256(path.read_bytes()).hexdigest()
+print(digest)
+```
 
-8. Definimos la función call_key para leer desde el archivo “pass.key” la llave para cifrar:
+Para archivos grandes conviene leer por bloques, como hace el proyecto
+`file-integrity-monitor`, en lugar de cargar todo en memoria.
 
-![image](https://user-images.githubusercontent.com/111693854/204674678-e0049e63-23c5-4461-81f7-9b3df54fdf99.png)
+## Seguridad
 
-9. Cifraremos un mensaje almacenado en una variable:
+- No ejecutes automáticamente datos después de decodificarlos.
+- Una cadena Base64 puede contener comandos, malware o contenido engañoso.
+- No pegues secretos en decodificadores web: estarías compartiéndolos con terceros.
+- Para contraseñas se necesitan algoritmos especializados como Argon2, scrypt o
+  bcrypt, junto con una sal; SHA-256 directo no es suficiente.
+- Para cifrar usa bibliotecas mantenidas y formatos autenticados; no inventes un
+  algoritmo propio.
 
-![image](https://user-images.githubusercontent.com/111693854/204674719-6bf3e69f-5e84-4ffb-8f1f-576897c210f2.png)
+## Siguientes pasos
 
-10. Y agregamos el proceso para descifrar el mismo mensaje:
+1. Modificar un byte y comprobar cómo cambia el hash.
+2. Procesar Base64 inválido y mostrar un error comprensible.
+3. Calcular SHA-256 por bloques de 64 KiB.
+4. Cambiar un byte de un mensaje cifrado y comprobar que se rechaza.
 
-![image](https://user-images.githubusercontent.com/111693854/204674792-1c8677f9-1e04-49bb-901f-62e5007ace13.png)
+## 5. Cifrado autenticado: ejemplo con Fernet
 
-11. Guardamos el archivo como “cypher.py” y dependiendo de donde lo hayamos guardado lo
-podemos ejecutar con “python cypher.py” : 
+El ejercicio original también utilizaba `cryptography`. Puedes conservar ese
+aprendizaje con un mensaje ficticio y una clave que sólo existe durante la ejecución.
+Instala `cryptography` en tu entorno virtual con `python -m pip install cryptography`:
 
-![image](https://user-images.githubusercontent.com/111693854/204674886-b42a6900-859d-4a64-9e26-2463fc308ff2.png)
+```python
+from cryptography.fernet import Fernet, InvalidToken
 
-___
 
-#### POWERSHELL
-___
+key = Fernet.generate_key()
+cipher = Fernet(key)
+token = cipher.encrypt("Mensaje de laboratorio".encode("utf-8"))
+print("Cifrado:", token.decode("ascii"))
 
-Code_posh
-___
-12. Ahora veremos varios ejemplos de codificación/decodificación usando PowerShell, el primer ejemplo es para codificar en Base64 (coder_posh.ps1):
-~~~
-# Limpiando pantalla
-# 
-Clear-Host
-# Mensaje de bienvenida
-Write-Host "Ejemplo de codificador Base64 en Powershell" -ForegroundColor Yellow
-Write-Host "Escribe una frase a codificar: "-ForegroundColor Yellow
-# Solicitando la entrada de una cabina de texto.
-$frase = Read-Host
-# Codificando en Base64 y guardando resultado en una cadena.
-$encod = [Convert]::ToBase64String([Text.Encoding]::Unicode.GetBytes(($frase)))
-# Imprimiendo la salida
-Write-Host "La frase escrita en base64 es: " -ForegroundColor Green
-Write-Output $encod 
-~~~
-El resultado al ejecutarlo deberia de verse asi 
+try:
+    original = cipher.decrypt(token).decode("utf-8")
+    print("Descifrado:", original)
+except InvalidToken:
+    print("El mensaje fue alterado o la clave no corresponde.")
+```
 
-![image](https://user-images.githubusercontent.com/111693854/204675088-ca8ce449-c586-4783-95d6-97f0bdc44126.png)
+La clave permite recuperar el contenido; la autenticación también detecta cambios
+en el mensaje cifrado. Al cerrar el programa se pierde la clave de esta práctica.
+En una aplicación real tendrías que protegerla y conservarla por separado. La
+biblioteca resuelve la criptografía, pero no administra por ti el almacenamiento
+seguro de claves.
 
-___
+## Referencias
 
-#### Decoder_posh
-___
-13. el siguiente script (decoder_posh.ps1) sirve para decodificar una cadena en Base64. Para facilitar la implementación de este script usaremos “texto_decoder_posh.txt” el cual contiene la cadena de la variable $texto: 
-
-"texto_decoder_posh.txt"
-~~~
-TABhAGIAbwByAGEAdABvAHIAaQBvACAAZABlACAAUAByAG8AZwByAGEAbQBhAGMAaQDzAG4AIABwAGEAcgBhACAAQwBpAGIAZQByAFMAZQBnAHUAcgBpAGQAYQBkACAAUwBlAHMAaQDzAG4AIAAxADAA
-~~~
-
-"decoder_posh.ps1"
-~~~
-# Limpiando Pantalla 
-Clear-Host
-# Mensaje de bienvenida 
-write-host " Ejemplo de Decodificador Base64 en Powershell"-ForegroundColor Yellow
-# Mensaje codificando Base64
-$texto = 'TABhAGIAbwByAGEAdABvAHIAaQBvACAAZABlACAAUAByAG8AZwByAGEAbQBhAGMAaQDzAG4AIABwAGEAcgBhACAAQwBpAGIAZQByAFMAZQBnAHUAcgBpAGQAYQBkACAAUwBlAHMAaQDzAG4AIAAxADAA'
-Write-Host "La cadena a decodificar es:"
-Write-Host $texto
-# Decodificamos el mensaje
-$decod =[System.Text.Encoding]::Unicode.GetString([System.Convert]::FromBase64String($texto))
-Write-Host "La cadena ya decodificada es:" -ForegroundColor Green
-Write-Host $decod
-~~~
-
-___
-
-#### Command_posh
-___
-14. La codificación también se puede utilizar para ocultar comandos, como por el ejemplo de
-script siguiente (command_posh.ps1): 
-
-"comando_secret.txt"
-~~~
-RwBlAHQALQBXAG0AaQBPAGIAagBlAGMAdAAgAHcAaQBuADMAMgBfAGIAYQBzAGUAcwBlAHIAdgBpAGMAZQAgAHwAZgBvAHIAZQBhAGMAaAAgAHsAVwByAGkAdABlAC0ASABvAHMAdAAgACQAXwAuAGQAaQBzAHAAbABhAHkAbgBhAG0AZQAgACQAXwAuAHMAdABhAHQAZQB9AA==
-~~~
-
-"command_posh.ps1"
-~~~
-# Comando de powershell a codificar en Base64
-$comando = 'Get-WmiObject win32_logicaldisk | foreach {Write-Host $_.deviceID $_.size $_.freespace}'
-# codificando $comando
-$encode = [Convert]::ToBase64String([Text.Encoding]::Unicode.GetBytes($comando))
-Write-Host $encode
-# Ejecutando el comando codificado
-Write-Host "Vamos a ejecutar el comando asi: powershell -E "$encode -ForegroundColor Cyan
-Start-Sleep 1
-powershell -E $encode
-Start-Sleep 2
-# $comando_secret guarda un comando codificado en Base64 
-$comando_secret='RwBlAHQALQBXAG0AaQBPAGIAagBlAGMAdAAgAHcAaQBuADMAMgBfAGIAYQBzAGUAcwBlAHIAdgBpAGMAZQAgAHwAZgBvAHIAZQBhAGMAaAAgAHsAVwByAGkAdABlAC0ASABvAHMAdAAgACQAXwAuAGQAaQBzAHAAbABhAHkAbgBhAG0AZQAgACQAXwAuAHMAdABhAHQAZQB9AA=='
-# Decodificamos el comando
-$decod = [System.Text.Encoding]::Unicode.GetString([System.Convert]::FromBase64String($comando_secret))
-# Mostramos el resultado
-Write-Host "El comando codificado es:" -ForegroundColor Cyan
-Write-Host $comando_secret
-Write-Output ""
-Write-Host "El comando ya sin codificar:"-ForegroundColor Cyan
-Write-Host $decod
-~~~
-
-___
-
-#### Codipo
-___
-15.  También es posible trabajar con archivos, el siguiente script (codipo.ps1), muestra un ejemplo de codificación/decodificación Base64 sobre un archivo “secret.txt”
-
-"secret.txt"
-~~~
-import requests # if __name__ == '__main__': 	
-url = "https://www.google.com.mx" 	
-response = requests.get(url) 	 	
-if response.status_code == 200: 		
-print(response.content)
-~~~
-
-"codipo.ps1"
-~~~
-Clear-Host
-Write-Host "Bienvenido a un ejemplo de codificacion / decodificacion base64 uasndo powershell"
-Write-Host " Codificando un archivo de texto"
-$intputfile = "Ubicacion de el archivo secret.txt"
-$fc = get-content $intputfile
-$GB = [System.Text.Encoding]::UTF8.GetBytes($fc)
-$etext = [System.Convert]::ToBase64String($GB)
-Write-Host "El contenido del archivo CODIFICADO es:" $etext -ForegroundColor Green
-Write-Host "DECODIFICANDO el texto previo:"
-[System.Text.Encoding]::ASCII.GetString([System.Convert]::FromBase64String($etext)) | Out-File -Encoding "ASCII" (Ubicacion de el archivo secret.txt)
-$outfile12 = get-content C:\Users\NutCr\Desktop\Lab_PC\secret.txt
-Write-Host "El texto decodificado es el siguiente:" -ForegroundColor Green
-Write-Host "DECODIFICADO:" $outfile12
-~~~
+- [Base64 de Python](https://docs.python.org/3/library/base64.html): formatos y validación.
+- [Fernet de cryptography](https://cryptography.io/en/latest/fernet/): cifrado autenticado y claves.

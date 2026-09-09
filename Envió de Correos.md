@@ -1,123 +1,157 @@
-## Envió de Correos
-### Se realizaran ejercicios en Python para la conexión y posterior envío de correos electronicos
-___
-Para poder utilizar la cuenta Gmail para los ejercicios  se necesitara configurar un password de aplicacion desde el siguiente link :
+# Crear y enviar correos de laboratorio con Python
 
-https://myaccount.google.com/apppasswords
+Primero construirás un archivo `.eml` y después lo enviarás a un servidor SMTP de
+prueba en tu propio equipo. Así podrás ver el mensaje completo y entender el envío.
 
-![image](https://user-images.githubusercontent.com/111693854/204849622-1bbba538-3199-42fe-86db-ef2a189d729c.png)
+## Partes principales de un correo
 
-![image](https://user-images.githubusercontent.com/111693854/204849755-0052c96a-111a-4222-b3a9-b781e003c057.png)
+- **From:** remitente declarado.
+- **To:** destinatario declarado.
+- **Subject:** asunto.
+- **Cuerpo:** contenido en texto o HTML.
+- **Adjunto:** archivo incluido dentro del mensaje.
+- **MIME:** estándar que permite representar diferentes tipos de contenido.
 
-![image](https://user-images.githubusercontent.com/111693854/204849942-22012ebd-7475-4615-a82f-d75e47edb253.png)
+Estos campos pueden ser falsificados. Ver un nombre conocido en `From` no demuestra
+quién envió realmente el mensaje.
 
-___
+## Ejemplo seguro y local
 
-#### Probando envíos en IDLE
-___
-1. Abriremos una vnetana de Python IDLE  para probar si funciona la contraseña de la aplicacion ,tambien servira para vlaidar la comunicacion con el servidor de correo Gmail;Ejecutaremos los siguientes comandos 
+Guarda el siguiente código como `create_email.py`:
 
-~~~
-import smtplib
-~~~
+```python
+from email.message import EmailMessage
+from pathlib import Path
 
-~~~
-conn = smptlib.SMTP(‘smtp.gmail.com’, 587)
-~~~
 
-~~~
-conn.ehlo()
-~~~
+OUTPUT = Path("correo-ejemplo.eml")
 
-___
-2. Después de establecer el saludo inicial, iniciamos una sesión TLS
 
-~~~
-conn.starttls()
-~~~
+def build_message() -> EmailMessage:
+    message = EmailMessage()
+    message["From"] = "remitente@example.com"
+    message["To"] = "destinatario@example.net"
+    message["Subject"] = "Mensaje de laboratorio"
+    message.set_content(
+        "Este correo es ficticio y fue creado localmente para aprender.\n"
+    )
+    return message
 
-___
-3. Ahora proporcionamos la información de acceso, tu cuenta de Gmail y la contraseña de app creada previamente: 
 
-~~~
-conn.login(‘aquí va tu correo@gmail.com’, ‘aquí tu contraseña app’)
-~~~
+def main() -> None:
+    message = build_message()
+    with OUTPUT.open("xb") as handle:
+        handle.write(message.as_bytes())
+    print(f"Correo guardado localmente en: {OUTPUT}")
 
-___
-4. Una vez aceptadas las credenciales haremos una prueba de envió sencilla
 
-~~~
-conn.sendmail(‘origen@gmail.com’,’destino@dominio’,’Subject: TestPractica10\n\nHola\n\n Prueba de <matricula> - <Nombre>’) 
-~~~
-Si al ejecutar nos devuelve "{}" significa que el mensaje fue procesado exitosamente.
-___
-5. Cerramos la conexión
-~~~
-conn.quit()
-~~~
+if __name__ == "__main__":
+    main()
+```
 
-___
+Ejecuta:
 
-#### Script de muestra (Python)
-___
+```bash
+python create_email.py
+```
 
-~~~
-import smtplib,ssl
-import getpass
+El programa no se conecta a Internet. Los dominios `example.com` y `example.net`
+están reservados para documentación.
+Si el archivo ya existe, el modo `xb` evita reemplazarlo; renómbralo para repetir.
 
-from email import encoders
-from email.mime.base import MIMEBase
-from email.mime.text import MIMEText
-from email.mime.multipart import MIMEMultipart
+## Añadir un adjunto ficticio
 
-#Peticion de datos para el inicio de sesion 
-correo_de_usuario = input("Ingresar tu correo: ")
-contraseña = input("ingresa la contraseña: ")
-destinatario = input("Ingrese destinatario: ")
-asunto = input("Ingrese asunto: ")
+Dentro de `build_message()`, antes de `return message`, puedes añadir este bloque
+si ya creaste un archivo ficticio `reporte.txt`:
 
-#Creacion de un mensaje en html
-mensaje = MIMEMultipart("alternative")
-mensaje["Subject"] = asunto
-mensaje["From"] = correo_de_usuario
-mensaje["To"] = destinatario
+```python
+from pathlib import Path
 
-html = f"""
-<html>
-<body>
-    <b> Practica de envio de correos </b><br><br>
-    Ejercicio de practica para envio de correos.<br><br>
-    <b>Alumno:</b>(Ingresar nombre)<br><br>
-    <b>Matricula:</b> (Matricula) <br>
-</body>
-</html>
-"""
-parte_html = MIMEText(html, "html")
 
-#Agregar el html a mensaje 
-mensaje.attach(parte_html)
+attachment = Path("reporte.txt")
+if attachment.stat().st_size > 1024 * 1024:
+    raise ValueError("El adjunto de práctica debe medir como máximo 1 MiB")
+data = attachment.read_bytes()
 
-#Ubicacion de la imagen a adjuntar 
-archivo = input("ubicacion de el archivo imagen a mandar   :   ") 
-
-#Codificacion de la imagen de forma estandar 
-with open(archivo,"rb") as adjunto:
-    contenido_adjunto = MIMEBase("application", "octet-stream")
-    contenido_adjunto.set_payload(adjunto.read())
-
-encoders.encode_base64(contenido_adjunto)
-contenido_adjunto.add_header(
-    "Content-Disposition",
-    f"attachment; filename= {archivo}",
+message.add_attachment(
+    data,
+    maintype="text",
+    subtype="plain",
+    filename=attachment.name,
 )
+```
 
-#Agregar la imagen codificada a mensaje
-mensaje.attach(contenido_adjunto)
-mensaje_final = mensaje.as_string()
+Antes de leer un adjunto conviene comprobar que existe, limitar su tamaño y decidir
+si realmente debe incluirse. El nombre debe obtenerse con `Path.name` para no
+publicar accidentalmente una ruta completa del equipo.
 
-#Envio del correo
-context = ssl.create_default_context()
-with smtplib.SMTP_SSL("smtp.gmail.com", 465, context=context) as server:
-    server.login(correo_de_usuario,contraseña)
-    server.sendmail(correo_de_usuario, destinatario, mensaje_final)
-~~~
+## Enviar a un servidor SMTP local
+
+Instala el servidor de prueba dentro de un entorno virtual:
+
+```bash
+python -m venv .venv
+source .venv/bin/activate
+python -m pip install aiosmtpd
+python -m aiosmtpd -n -l 127.0.0.1:1025
+```
+
+La terminal quedará esperando. El manejador predeterminado muestra los correos
+recibidos por consola. En otra terminal, en la carpeta de `create_email.py`, ejecuta
+este archivo llamado `send_local_email.py`:
+
+```python
+import smtplib
+from create_email import build_message
+
+
+def main() -> None:
+    message = build_message()
+    try:
+        with smtplib.SMTP("127.0.0.1", 1025, timeout=10) as server:
+            server.send_message(message)
+        print("Mensaje recibido por el servidor local; revisa su terminal.")
+    except (smtplib.SMTPException, OSError) as error:
+        print(f"No se pudo enviar al laboratorio: {error}")
+
+
+if __name__ == "__main__":
+    main()
+```
+
+Detén el servidor con `Ctrl+C`. Esta práctica transmite sólo dentro del propio
+equipo y no entrega el correo a `example.net`.
+
+Para enviar mediante un proveedor externo necesitarás su configuración actual,
+cifrado TLS y autenticación. Un secreto debe obtenerse fuera del código; por
+ejemplo, `getpass.getpass()` evita mostrarlo al escribirlo. No utilices el servidor
+local sin cifrado como configuración para una cuenta real.
+
+## Relación con la ciberseguridad
+
+Un analista puede guardar un correo como `.eml` y revisar:
+
+- Diferencias entre `From` y `Reply-To`.
+- Enlaces HTTP o con direcciones IP literales.
+- Adjuntos inesperados.
+- Resultados de autenticación como SPF, DKIM y DMARC.
+
+Una señal aislada no demuestra phishing; siempre hace falta contexto.
+
+## Siguientes pasos
+
+1. Añadir una versión HTML junto al texto plano.
+2. Leer de nuevo el `.eml` con `email.parser.BytesParser`.
+3. Extraer enlaces sin abrirlos.
+4. Escribir pruebas para comprobar los encabezados.
+
+## Referencias
+
+La construcción de mensajes sigue los [ejemplos de email de Python](https://docs.python.org/3/library/email.examples.html).
+El servidor de práctica usa la [CLI de aiosmtpd](https://aiosmtpd.aio-libs.org/en/latest/cli.html).
+
+## Uso responsable
+
+No automatices envíos masivos ni uses datos de otras personas. Nunca publiques
+correos reales: pueden contener direcciones, identificadores, firmas y conversaciones
+privadas.

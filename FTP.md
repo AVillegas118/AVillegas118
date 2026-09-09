@@ -1,140 +1,169 @@
-## FTP
-### Se Probaran transferencia de FTP  
-___
-#### Instalar FTP Server en Debian 11
-- Se utilizara una maquina virtual Debian11 
-___
-1. Actualizamos la lista de repositorios: 
-~~~
-$sudo apt-get update 
-~~~
-___
-2. Una vez actualizados los repositorios, instalamos un servidor ftp con:
-~~~
-$sudo apt-get install vsftpd
-~~~
-___
-3. Validamos el servicio de ftp una vez instalado:
-~~~
-$sudo systemctl status vsftpd 
-~~~
-___
-4. Vamos a realizar varios ajustes a la configuración que trae por default el servidor de FTP, usando un edito de texto (nano en este caso):
-~~~
-$sudo nano /etc/vsftpd.conf
-~~~
+# FTP en un laboratorio aislado
 
-En el archivo buscaremos que estén configuradas las siguientes opciones:
+FTP es un protocolo clásico para transferir archivos. En su forma normal **no cifra
+usuarios, contraseñas ni contenido**, por lo que no es apropiado para enviar datos
+sensibles a través de redes no confiables.
 
-- anonymous_enable=NO
-- local_enable=YES
-- write_enable=YES 
-___
-5. Vamos a habilitar chroot jail, una propiedad que permite que usuarios de ftp no accedan más allá de los directorios permitidos con las siguientes directivas: 
+Esta práctica sirve para comprender un protocolo antiguo dentro de una máquina
+virtual aislada. Para sistemas reales suelen preferirse SFTP (sobre SSH) o una
+configuración FTPS administrada correctamente.
 
-- chroot_local_users=YES
-- user_sub_toke=$USER
-- local_root=/home/$USER/ftp
-___
-6. Al final del archivo agregamos directivas para limitar FTP en modo pasivo, con lo siguiente:
+## Conceptos
 
-- pasv_min_port=30000
-- pasv_max_port=31000 
-___
-7. Finalmente agregamos también al final del archivo que estamos modificando las siguientes directivas de control de usuarios:
+- **Servidor:** recibe conexiones y ofrece los archivos permitidos.
+- **Cliente:** programa que se conecta al servidor.
+- **Modo pasivo:** el servidor abre un rango adicional de puertos para los datos.
+- **Chroot:** limita al usuario a una parte del sistema de archivos.
+- **Texto claro:** información que viaja sin cifrado.
 
-- userlist_enable=YES
-- userlist_file=/etc/vsftpd.user_list
-- userlist_deny=NO 
-___
-8. Una vez guardados los cambios reiniciamos el servicio de ftp para aplicar los cambios en su archivo de configuración:
-~~~
-$sudo systemctl restart vsftpd
-~~~
+## Requisitos del laboratorio
 
-~~~
-$sudo systemctl status vsftpd
-~~~
+- Una máquina virtual Debian sin puertos publicados hacia Internet.
+- Una instantánea de la VM para poder regresar al estado anterior.
+- Un usuario y contraseña ficticios usados sólo en el laboratorio.
 
-![image](https://user-images.githubusercontent.com/111693854/204707640-27f8b0e9-5e82-4525-a8c4-7f028f5b0bc3.png)
+## 1. Instalar y detener antes de configurar
 
-___
-9. Ahora vamos a crear un usuario para acceso al servidor de FTP
-~~~
-$sudo adduser <Nombre de el ususario>
-~~~
-___
-10. Agregamos el usuario recién creado a lista de usuarios permitidos en FTP: 
-~~~
-$echo "<Nombre de el ususario>" | sudo tee -a /etc/vsftpd.user_list 
-~~~
-___
-11.  Creamos los directorios de FTP y aplicamos los permisos correspondientes:
-~~~
-$sudo mkdir -p /home/<Nombre de el ususario>/ftp/upload 
-~~~
+```bash
+sudo apt update
+sudo apt install vsftpd
+sudo systemctl stop vsftpd
+sudo cp /etc/vsftpd.conf /etc/vsftpd.conf.backup
+```
 
-~~~
-$sudo chmod 500 /home/<Nombre de el ususario>/ftp
-~~~
+Detener el servicio permite revisar la configuración antes de exponerlo incluso en
+la red del laboratorio.
 
-~~~
-$sudo chmod 750 /home/<Nombre de el ususario>/ftp/upload 
-~~~
+## 2. Configuración mínima de práctica
 
-~~~
-$sudo chown -R <Nombre de el ususario>: /home/<Nombre de el ususario>/ftp
-~~~
-___
+Edita `/etc/vsftpd.conf` con `sudo nano /etc/vsftpd.conf`. Ajusta las directivas
+existentes y añade sólo las que falten; conserva el resto del archivo de Debian,
+incluido `pam_service_name=vsftpd`. No dejes una opción repetida con otro valor.
 
-#### Probar transferencias FTP
-___
-**Desde la maquina host se abrira una ventana en CMD o PowerShell para realizar una transferencia. Es necesario conocer la direccion ip de la maquina virtual **
+```ini
+listen=YES
+listen_ipv6=NO
+listen_address=127.0.0.1
+anonymous_enable=NO
+local_enable=YES
+write_enable=YES
+chroot_local_user=YES
+user_sub_token=$USER
+local_root=/home/$USER/ftp
+userlist_enable=YES
+userlist_file=/etc/vsftpd.user_list
+userlist_deny=NO
+pasv_min_port=30000
+pasv_max_port=30010
+```
 
-12. En la maquina virtual de powershell/CMD ejecutamos:
-~~~
-PS > ftp <ip de tu maquina debian>
-~~~
-- Usuario: 
-- Contraseña:
-___
-13. Una vez que hayamos iniciado sesión vamos a ejecutar los siguientes comandos de FTP:
+- `listen` y `listen_ipv6` no pueden estar activos a la vez. Aquí usamos IPv4.
+- `listen_address` permite empezar con conexiones desde la misma VM.
+- El acceso anónimo queda desactivado.
+- La lista permite únicamente usuarios seleccionados.
+- `chroot_local_user` limita su vista del sistema de archivos.
+- El rango pasivo es pequeño para facilitar el laboratorio.
 
-- **ls **: sirve para listar el contenido del directorio.
-- **cd upload**: permite cambiar nuestra ubicación al directorio “upload”.
-- **put ADVERTENCIA.txt**: permite cargar un archivo hacia el servidor 
+`$USER` se escribe literalmente en este archivo; vsftpd lo sustituye por el usuario
+que inicia sesión. Un `chroot` no sustituye el cifrado.
 
-Archivo ADVERTENCIA.txt
-~~~
-SE HA CONECTADO A UNA COMPUTADORA DEL GOBIERNO DE EE. UU. SI NO ESTÁ AUTORIZADO PARA ACCEDER A ESTE SISTEMA, 
-DESCONECTE AHORA. Todos los intentos de acceder y utilizar este sistema y / o sus recursos están sujetos 
-a la supervisión y grabación de pulsaciones de teclas. Todas las personas que usan este sistema consienten 
-expresamente dicho monitoreo y se les aconseja que si revelan posibles evidencias de actividad criminal o 
-abuso de autoridad, la información será reportada a las autoridades para que actúen. Los intentos de acceso 
-no autorizados o el uso que exceda la autoridad documentada pueden someterlo a una multa y / o prisión 
-de acuerdo con el Título 18, USC, Sección 1030 o sanciones administrativas o despido.
-~~~
+Referencia: [opciones de vsftpd](https://security.appspot.com/vsftpd/vsftpd_conf.html).
 
-___
-14. Dentro de nuestra maquina virtual en Debian 11 vamos a validar que el archivo se haya cargado correctamente con los siguientes comandos en terminal:
-~~~
-$ su - <Nombre de el ususario>
-~~~
+## 3. Crear un usuario exclusivo
 
-~~~
-$cd ftp/upload
-~~~
+```bash
+sudo adduser ftp-lab
+printf '%s\n' 'ftp-lab' | sudo tee /etc/vsftpd.user_list
+sudo mkdir -p /home/ftp-lab/ftp/upload
+sudo chown root:root /home/ftp-lab/ftp
+sudo chmod 755 /home/ftp-lab/ftp
+sudo chown ftp-lab:ftp-lab /home/ftp-lab/ftp/upload
+sudo chmod 750 /home/ftp-lab/ftp/upload
+```
 
-~~~
-$ls
-~~~
+La raíz pertenece a `root` y el usuario sólo puede escribir dentro de `upload`.
 
-~~~
-$cat ADVERTENCIA.txt
-~~~
-___
-15. Una vez confirmado que el archivo fue cargado exitosamente, en nuestra ventana de
-powershell/cmd ejecutamos el comado de FTP para salir: 
-~~~
-ftp>bye
-~~~
+## 4. Arrancar y revisar errores
+
+vsftpd no ofrece una opción de comprobación de sintaxis sin arrancar. Inícialo con
+el servicio y revisa su estado:
+
+```bash
+sudo systemctl restart vsftpd
+sudo systemctl status vsftpd --no-pager
+sudo journalctl -u vsftpd -n 30 --no-pager
+```
+
+El estado esperado es `active (running)`. Si falla, revisa el mensaje del registro,
+el nombre de las opciones y que sólo un modo de escucha esté activo. Ejecutar
+`vsftpd -olisten=NO /etc/vsftpd.conf` **no es una validación**: carga opciones y
+lanza el servidor; el archivo incluso puede sobrescribir `listen=NO`.
+Consulta el [manual de ejecución de vsftpd en Debian](https://manpages.debian.org/trixie/vsftpd/vsftpd.8.en.html).
+
+## 5. Probar desde la misma máquina
+
+En la VM instala el cliente y prepara un archivo de texto sin información personal:
+
+```bash
+sudo apt install ftp
+printf 'Archivo de ejemplo del laboratorio FTP.\n' > ejemplo.txt
+ftp 127.0.0.1
+```
+
+Introduce el usuario y después la contraseña cuando el cliente los pida. Ya dentro
+de FTP, ejecuta los comandos que aparecen tras `ftp>`; no copies ese indicador:
+
+```text
+Name: ftp-lab
+Password: <contraseña ficticia del laboratorio>
+ftp> cd upload
+ftp> put ejemplo.txt
+ftp> ls
+ftp> bye
+```
+
+`put` sube un archivo desde el directorio donde abriste el cliente; `ls` lista
+los archivos del servidor y `bye` cierra la sesión. Comprueba el contenido recibido:
+
+```bash
+sudo cat /home/ftp-lab/ftp/upload/ejemplo.txt
+```
+
+Debe mostrar la misma frase. Si `put` indica que no encuentra el archivo, comprueba
+el directorio local. Si rechaza la escritura, revisa que estés dentro de `upload`
+y los permisos del paso 3.
+
+## Prueba opcional desde Windows u otra máquina del laboratorio
+
+En la VM usa `ip -brief address` para consultar su IP de la red aislada. Sustituye
+`listen_address=127.0.0.1` por esa IP y reinicia el servicio. Desde un cliente FTP
+con modo pasivo, conecta a esa dirección, puerto `21`, con `ftp-lab`. Repite la
+transferencia y la comprobación del archivo. Si hay un firewall, permite desde el
+cliente del laboratorio TCP `21` y `30000–30010`; no abras puertos del router.
+
+Comprueba que el cliente elegido esté configurado en modo pasivo para practicar
+con el rango definido; el modo activo usa otra dirección de conexión. Al terminar vuelve
+a `listen_address=127.0.0.1` y reinicia, o detén el laboratorio en el siguiente paso.
+
+## 6. Limpiar el laboratorio
+
+```bash
+sudo systemctl disable --now vsftpd
+```
+
+Después puedes restaurar la instantánea de la máquina virtual. Si conservas la VM,
+elimina el usuario ficticio y la configuración cuando ya no se necesiten.
+
+## Qué demuestra la práctica
+
+- Diferencia entre cliente y servidor.
+- Permisos y separación de directorios.
+- Riesgo de protocolos sin cifrado.
+- Importancia de limitar usuarios, red y tiempo de exposición.
+
+## Siguientes pasos
+
+1. Capturar tráfico dentro del laboratorio y observar por qué FTP no protege las
+   credenciales; nunca captures tráfico de otras personas.
+2. Repetir la transferencia con SFTP y comparar los protocolos.
+3. Documentar qué puertos necesita el modo pasivo.
