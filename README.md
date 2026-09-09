@@ -37,6 +37,14 @@ reproducirlo paso a paso.
 
 ### Seguridad y redes
 
+Lecturas para empezar:
+
+- [Redes desde cero](https://github.com/AVillegas118/AVillegas118/blob/main/docs/REDES-DESDE-CERO.md): IP, subredes, DNS, TCP y UDP.
+- [Puertos y seguridad básica](https://github.com/AVillegas118/AVillegas118/blob/main/docs/PUERTOS-Y-SEGURIDAD.md): servicios comunes, firewall y cómo interpretar puertos abiertos.
+- [Lecturas y ejercicios](https://github.com/AVillegas118/AVillegas118/blob/main/docs/LECTURAS-DE-SEGURIDAD.md): fuentes, protección de la red doméstica y repaso.
+
+Apuntes prácticos:
+
 1. [Nmap](https://github.com/AVillegas118/AVillegas118/blob/main/Nmap.md)
 2. [Escáner de puertos](https://github.com/AVillegas118/AVillegas118/blob/main/Esc%C3%A1ner%20de%20Puertos.md)
 3. [FTP](https://github.com/AVillegas118/AVillegas118/blob/main/FTP.md)
