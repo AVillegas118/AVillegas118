@@ -5,6 +5,10 @@ presenta ejemplos y propone ejercicios pequeños para seguir avanzando.
 
 ## Orden sugerido
 
+Si redes es un tema nuevo para ti, empieza por [Redes desde cero](REDES-DESDE-CERO.md)
+y [Puertos y seguridad básica](PUERTOS-Y-SEGURIDAD.md). Después puedes seguir
+las [lecturas y ejercicios de repaso](LECTURAS-DE-SEGURIDAD.md).
+
 1. Bash o PowerShell: aprende comandos, variables, condiciones y bucles.
 2. Encoding: distingue codificación, cifrado y hashes.
 3. APIs y web scraping: obtiene datos y maneja respuestas y errores.
